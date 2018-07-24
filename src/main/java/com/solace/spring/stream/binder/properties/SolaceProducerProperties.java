@@ -1,7 +1,7 @@
 package com.solace.spring.stream.binder.properties;
 
 public class SolaceProducerProperties extends SolaceCommonProperties {
-	private boolean isQueueNameGroupOnly;
+	private boolean isQueueNameGroupOnly = false;
 
 	public boolean isQueueNameGroupOnly() {
 		return isQueueNameGroupOnly;

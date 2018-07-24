@@ -38,12 +38,6 @@ public class SolaceQueueProvisioner
 		for (String groupName : properties.getRequiredGroups()) {
 			String baseQueueName = properties.getExtension().isQueueNameGroupOnly() ? groupName : topicName + "." + groupName;
 
-			//TODO Make Configurable
-			EndpointProperties endpointProperties = new EndpointProperties();
-			endpointProperties.setPermission(EndpointProperties.PERMISSION_DELETE);
-			endpointProperties.setAccessType(EndpointProperties.ACCESSTYPE_NONEXCLUSIVE);
-			endpointProperties.setQuota(1500);
-
 			if (properties.isPartitioned()) { //TODO
 
 			} else {
@@ -74,7 +68,7 @@ public class SolaceQueueProvisioner
 		//TODO Parameterize this?
 		EndpointProperties endpointProperties = new EndpointProperties();
 		endpointProperties.setPermission(EndpointProperties.PERMISSION_DELETE);
-		endpointProperties.setAccessType(EndpointProperties.ACCESSTYPE_NONEXCLUSIVE);
+		endpointProperties.setAccessType(EndpointProperties.ACCESSTYPE_EXCLUSIVE);
 		endpointProperties.setQuota(1500);
 
 		Queue queue;
