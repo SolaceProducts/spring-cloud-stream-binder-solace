@@ -8,7 +8,6 @@ import com.solacesystems.jcsmp.JCSMPFactory;
 import com.solacesystems.jcsmp.JCSMPSession;
 import com.solacesystems.jcsmp.Queue;
 import com.solacesystems.jcsmp.Topic;
-import com.solacesystems.jcsmp.TopicEndpoint;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.cloud.stream.binder.ExtendedConsumerProperties;
@@ -35,7 +34,6 @@ public class SolaceQueueProvisioner
 	@Override
 	public ProducerDestination provisionProducerDestination(String name, ExtendedProducerProperties<SolaceProducerProperties> properties) throws ProvisioningException {
 		String topicName = name; //TODO Any fancy transforms
-		TopicEndpoint topicEndpoint = provisionTopicEndpoint(topicName, properties.getExtension().isDurableTopicEndpoint());
 
 		for (String groupName : properties.getRequiredGroups()) {
 			String baseQueueName = properties.getExtension().isQueueNameGroupOnly() ? groupName : topicName + "." + groupName;
@@ -50,7 +48,7 @@ public class SolaceQueueProvisioner
 
 			} else {
 				Queue queue = provisionQueue(baseQueueName, true);
-				addSubscriptionToQueue(topicName, queue);
+				addSubscriptionToQueue(queue, topicName);
 			}
 		}
 		return new SolaceProducerDestination(topicName);
@@ -61,7 +59,6 @@ public class SolaceQueueProvisioner
 		//TODO Do anonymous endpoints when no group is given like RabbitMQ?
 
 		String topicName = name; //TODO Any fancy transforms
-		TopicEndpoint topicEndpoint = provisionTopicEndpoint(topicName, properties.getExtension().isDurableTopicEndpoint());
 
 		String baseQueueName = topicName + "." + (StringUtils.hasText(group) ? group : "default");
 		String queueName = baseQueueName; //TODO Any fancy transforms
@@ -69,37 +66,8 @@ public class SolaceQueueProvisioner
 
 		}
 		Queue queue = provisionQueue(queueName, properties.getExtension().isDurableQueue());
-		addSubscriptionToQueue(topicName, queue);
+		addSubscriptionToQueue(queue, topicName);
 		return new SolaceConsumerDestination(queue.getName());
-	}
-
-	private TopicEndpoint provisionTopicEndpoint(String name, boolean isDurable) throws ProvisioningException {
-		//TODO Parameterize this?
-		EndpointProperties endpointProperties = new EndpointProperties();
-		endpointProperties.setPermission(EndpointProperties.PERMISSION_DELETE);
-		endpointProperties.setAccessType(EndpointProperties.ACCESSTYPE_EXCLUSIVE);
-		endpointProperties.setQuota(1500);
-
-		TopicEndpoint topicEndpoint;
-		if (isDurable) {
-			topicEndpoint = JCSMPFactory.onlyInstance().createDurableTopicEndpointEx(name);
-		} else {
-			try {
-				topicEndpoint = jcsmpSession.createNonDurableTopicEndpoint(name);
-			} catch (JCSMPException e) {
-				throw new ProvisioningException(String.format("Failed to provision non-durable topic endpoint %s", name), e);
-			}
-		}
-
-		try {
-			jcsmpSession.provision(topicEndpoint, endpointProperties, JCSMPSession.FLAG_IGNORE_ALREADY_EXISTS);
-		} catch (JCSMPException e) {
-			String msg = String.format("Failed to provision topic endpoint %s", name);
-			logger.error(msg, e);
-			throw new ProvisioningException(msg, e);
-		}
-
-		return topicEndpoint;
 	}
 
 	private Queue provisionQueue(String name, boolean isDurable) throws ProvisioningException {
@@ -131,7 +99,7 @@ public class SolaceQueueProvisioner
 		return queue;
 	}
 
-	private void addSubscriptionToQueue(String topicName, Queue queue) {
+	private void addSubscriptionToQueue(Queue queue, String topicName) {
 		logger.info(String.format("Subscribing queue %s to topic %s", queue.getName(), topicName));
 		try {
 			Topic topic = JCSMPFactory.onlyInstance().createTopic(topicName);
