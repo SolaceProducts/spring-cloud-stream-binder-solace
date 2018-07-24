@@ -26,10 +26,12 @@ public class SolaceMessageChannelBinder
 
 	private JCSMPSession jcsmpSession;
 	private SolaceExtendedBindingProperties extendedBindingProperties = new SolaceExtendedBindingProperties();
+	private JCSMPSessionProducerManager sessionProducerManager;
 
 	public SolaceMessageChannelBinder(JCSMPSession jcsmpSession, SolaceQueueProvisioner solaceQueueProvisioner) {
 		super(new String[0], solaceQueueProvisioner);
 		this.jcsmpSession = jcsmpSession;
+		this.sessionProducerManager = new JCSMPSessionProducerManager(jcsmpSession);
 	}
 
 	@Override
@@ -40,7 +42,7 @@ public class SolaceMessageChannelBinder
 	@Override
 	protected MessageHandler createProducerMessageHandler(ProducerDestination destination, ExtendedProducerProperties<SolaceProducerProperties> producerProperties, MessageChannel errorChannel) throws Exception {
 		//TODO Handle ERROR Channel
-		return new JCSMPOutboundMessageHandler(destination, jcsmpSession, errorChannel);
+		return new JCSMPOutboundMessageHandler(destination, jcsmpSession, errorChannel, sessionProducerManager);
 	}
 
 	@Override
