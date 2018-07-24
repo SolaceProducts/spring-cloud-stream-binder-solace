@@ -67,7 +67,7 @@ public class SolaceQueueProvisioner
 	private Queue provisionQueue(String name, boolean isDurable) throws ProvisioningException {
 		//TODO Parameterize this?
 		EndpointProperties endpointProperties = new EndpointProperties();
-		endpointProperties.setPermission(EndpointProperties.PERMISSION_DELETE);
+		endpointProperties.setPermission(EndpointProperties.PERMISSION_CONSUME);
 		endpointProperties.setAccessType(EndpointProperties.ACCESSTYPE_EXCLUSIVE);
 		endpointProperties.setQuota(1500);
 
