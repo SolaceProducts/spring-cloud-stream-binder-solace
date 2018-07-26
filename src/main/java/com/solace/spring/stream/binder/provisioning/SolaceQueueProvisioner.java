@@ -1,5 +1,6 @@
 package com.solace.spring.stream.binder.provisioning;
 
+import com.solace.spring.stream.binder.util.SolaceProvisioningUtil;
 import com.solace.spring.stream.binder.properties.SolaceCommonProperties;
 import com.solacesystems.jcsmp.EndpointProperties;
 import com.solacesystems.jcsmp.JCSMPErrorResponseException;
@@ -19,82 +20,87 @@ import org.springframework.cloud.stream.provisioning.ConsumerDestination;
 import org.springframework.cloud.stream.provisioning.ProducerDestination;
 import org.springframework.cloud.stream.provisioning.ProvisioningException;
 import org.springframework.cloud.stream.provisioning.ProvisioningProvider;
-import org.springframework.util.StringUtils;
 
-import javax.validation.constraints.NotNull;
+import java.util.HashMap;
+import java.util.Map;
 
 public class SolaceQueueProvisioner
-		implements ProvisioningProvider<ExtendedConsumerProperties<SolaceConsumerProperties>, ExtendedProducerProperties<SolaceProducerProperties>> {
+		implements ProvisioningProvider<ExtendedConsumerProperties<SolaceConsumerProperties>,ExtendedProducerProperties<SolaceProducerProperties>> {
 
 	private JCSMPSession jcsmpSession;
+	private Map<String,String> queueToTopicBindings = new HashMap<>();
 
 	private static final Log logger = LogFactory.getLog(SolaceQueueProvisioner.class);
-	private static final String QUEUE_NAME_DELIM = ".";
 
 	public SolaceQueueProvisioner(JCSMPSession jcsmpSession) {
 		this.jcsmpSession = jcsmpSession;
 	}
 
 	@Override
-	public ProducerDestination provisionProducerDestination(String name, ExtendedProducerProperties<SolaceProducerProperties> properties) throws ProvisioningException {
-		SolaceProducerProperties exProperties = properties.getExtension();
-		String topicName = properties.getExtension().getPrefix() + name;
+	public ProducerDestination provisionProducerDestination(String name,
+															ExtendedProducerProperties<SolaceProducerProperties> properties)
+			throws ProvisioningException {
+
+		String topicName = SolaceProvisioningUtil.getTopicName(name, properties.getExtension());
 
 		for (String groupName : properties.getRequiredGroups()) {
-			String queueName = getQueueName(topicName, groupName, exProperties);
-			Queue queue = provisionQueue(queueName, exProperties.isDurableQueue(), exProperties);
+			String queueName = SolaceProvisioningUtil.getQueueName(topicName, groupName, properties.getExtension());
+			logger.info(String.format("Creating durable queue %s for required consumer group %s", queueName, groupName));
+			Queue queue = provisionQueue(queueName, true, properties.getExtension());
+
 			addSubscriptionToQueue(queue, topicName);
+			queueToTopicBindings.put(queue.getName(), topicName);
 		}
 
 		return new SolaceProducerDestination(topicName);
 	}
 
 	@Override
-	public ConsumerDestination provisionConsumerDestination(String name, String group, ExtendedConsumerProperties<SolaceConsumerProperties> properties) throws ProvisioningException {
-		SolaceConsumerProperties exProperties = properties.getExtension();
-		String topicName = exProperties.getPrefix() + name;
-		boolean isAnonQueue = !StringUtils.hasText(group);
+	public ConsumerDestination provisionConsumerDestination(String name, String group,
+															ExtendedConsumerProperties<SolaceConsumerProperties> properties)
+			throws ProvisioningException {
 
-		String queueName = getQueueName(topicName, group, exProperties, isAnonQueue);
-		Queue queue = provisionQueue(queueName, ! isAnonQueue && exProperties.isDurableQueue(), exProperties);
-		addSubscriptionToQueue(queue, topicName);
+		String topicName = SolaceProvisioningUtil.getTopicName(name, properties.getExtension());
+		boolean isAnonQueue = SolaceProvisioningUtil.isAnonQueue(group);
+		boolean isDurableQueue = SolaceProvisioningUtil.isDurableQueue(group, properties.getExtension());
+		String queueName = SolaceProvisioningUtil.getQueueName(topicName, group, properties.getExtension(), isAnonQueue);
 
+		logger.info(isAnonQueue ?
+				String.format("Creating anonymous (temporary) queue %s", queueName) :
+				String.format("Creating %s queue %s for consumer group %s", isDurableQueue ? "durable" : "temporary", queueName, group));
+		Queue queue = provisionQueue(queueName, isDurableQueue, properties.getExtension());
+
+		queueToTopicBindings.put(queue.getName(), topicName);
 		return new SolaceConsumerDestination(queue.getName());
 	}
 
 	private Queue provisionQueue(String name, boolean isDurable, SolaceCommonProperties properties) throws ProvisioningException {
-		EndpointProperties endpointProperties = new EndpointProperties();
-		endpointProperties.setAccessType(EndpointProperties.ACCESSTYPE_EXCLUSIVE);
-		endpointProperties.setDiscardBehavior(properties.getQueueDiscardBehaviour());
-		endpointProperties.setMaxMsgRedelivery(properties.getQueueMaxMsgRedelivery());
-		endpointProperties.setMaxMsgSize(properties.getQueueMaxMsgSize());
-		endpointProperties.setPermission(properties.getQueuePermission());
-		endpointProperties.setQuota(properties.getQueueQuota());
-		endpointProperties.setRespectsMsgTTL(properties.getRespectsMsgTTL());
-
 		Queue queue;
 		if (isDurable) {
-			queue = JCSMPFactory.onlyInstance().createQueue(name);
+			try {
+				queue = JCSMPFactory.onlyInstance().createQueue(name);
+				EndpointProperties endpointProperties = SolaceProvisioningUtil.getEndpointProperties(properties);
+				jcsmpSession.provision(queue, endpointProperties, JCSMPSession.FLAG_IGNORE_ALREADY_EXISTS);
+			} catch (JCSMPException e) {
+				String msg = String.format("Failed to provision durable queue %s", name);
+				logger.error(msg, e);
+				throw new ProvisioningException(msg, e);
+			}
 		} else {
 			try {
+				// EndpointProperties will be applied during consumer creation
 				queue = jcsmpSession.createTemporaryQueue(name);
 			} catch (JCSMPException e) {
-				throw new ProvisioningException(String.format("Failed to create non-durable queue %s", name), e);
+				String msg = String.format("Failed to create temporary queue %s", name);
+				logger.error(msg, e);
+				throw new ProvisioningException(msg, e);
 			}
-		}
-
-		try {
-			jcsmpSession.provision(queue, endpointProperties, JCSMPSession.FLAG_IGNORE_ALREADY_EXISTS);
-		} catch (JCSMPException e) {
-			String msg = String.format("Failed to provision queue %s", name);
-			logger.error(msg, e);
-			throw new ProvisioningException(msg, e);
 		}
 
 		return queue;
 	}
 
-	private void addSubscriptionToQueue(Queue queue, String topicName) {
+	public void addSubscriptionToQueue(Queue queue, String topicName) {
 		logger.info(String.format("Subscribing queue %s to topic %s", queue.getName(), topicName));
 		try {
 			Topic topic = JCSMPFactory.onlyInstance().createTopic(topicName);
@@ -116,31 +122,8 @@ public class SolaceQueueProvisioner
 		}
 	}
 
-	private String getQueueName(@NotNull String topicName, @NotNull String groupName,
-								@NotNull SolaceProducerProperties consumerProperties) {
-		return getQueueName(topicName, groupName, consumerProperties,
-				false, null);
-	}
-
-	private String getQueueName(@NotNull String topicName, @NotNull String groupName,
-								@NotNull SolaceConsumerProperties consumerProperties, boolean isAnonymous) {
-		return getQueueName(topicName, groupName, consumerProperties,
-				isAnonymous, consumerProperties.getAnonymousGroupPrefix());
-	}
-
-	private String getQueueName(@NotNull String topicName, @NotNull String groupName,
-								@NotNull SolaceCommonProperties properties,
-								boolean isAnonymous, String anonGroupPrefix) {
-		String queueName;
-		if (isAnonymous) {
-			queueName = topicName + QUEUE_NAME_DELIM + JCSMPFactory.onlyInstance().createUniqueName(anonGroupPrefix);
-		} else if (properties.isQueueNameGroupOnly()) {
-			queueName = groupName;
-		} else {
-			queueName = topicName + QUEUE_NAME_DELIM + groupName;
-		}
-
-		return properties.getPrefix() + queueName;
+	public String getBoundTopicNameForQueue(String queueName) {
+		return queueToTopicBindings.get(queueName);
 	}
 
 	private static final class SolaceProducerDestination implements ProducerDestination {
@@ -172,7 +155,7 @@ public class SolaceQueueProvisioner
 	private static final class SolaceConsumerDestination implements ConsumerDestination {
 		private String queueName;
 
-		public SolaceConsumerDestination(String queueName) {
+		SolaceConsumerDestination(String queueName) {
 			this.queueName = queueName;
 		}
 

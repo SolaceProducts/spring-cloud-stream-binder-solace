@@ -42,10 +42,8 @@ class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
 	@Override
 	public void handleMessage(Message<?> message) throws MessagingException {
 		if (! isRunning) {
-			String msg = String.format("Cannot send message, message handler %s is not running", id);
-			if (errorChannel != null) errorChannel.send(message);
-			logger.error(msg);
-			throw new MessagingException(msg);
+			throw handleMessagingException(
+					String.format("Cannot send message, message handler %s is not running", id), message, null);
 		}
 
 		XMLMessage xmlMessage;
@@ -53,19 +51,14 @@ class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
 			xmlMessage = xmlMessageMapper.map(message.getPayload(), message.getPayload().getClass());
 			xmlMessage.setDeliveryMode(DeliveryMode.PERSISTENT);
 		} catch (JsonProcessingException e) {
-			String msg = "Failed to serialize payload";
-			if (errorChannel != null) errorChannel.send(message);
-			logger.error(msg, e);
-			throw new MessagingException(msg, e);
+			throw handleMessagingException("Failed to serialize payload", message, e);
 		}
 
 		try {
 			producer.send(xmlMessage, topic);
 		} catch (JCSMPException e) {
-			String msg = String.format("Unable to send message to topic %s", topic.getName());
-			if (errorChannel != null) errorChannel.send(message);
-			logger.error(msg, e);
-			throw new MessagingException(msg, e);
+			throw handleMessagingException(
+					String.format("Unable to send message to topic %s", topic.getName()), message, e);
 		}
 	}
 
@@ -98,5 +91,12 @@ class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
 	@Override
 	public boolean isRunning() {
 		return isRunning;
+	}
+
+	private MessagingException handleMessagingException(String msg, Message<?> message, Exception e)
+			throws MessagingException {
+		logger.error(msg);
+		if (errorChannel != null) errorChannel.send(message);
+		return e != null ? new MessagingException(msg, e) : new MessagingException(msg);
 	}
 }

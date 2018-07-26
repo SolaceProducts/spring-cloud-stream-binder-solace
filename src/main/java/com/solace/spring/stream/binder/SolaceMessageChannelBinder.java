@@ -1,6 +1,10 @@
 package com.solace.spring.stream.binder;
 
+import com.solace.spring.stream.binder.util.SolaceProvisioningUtil;
+import com.solacesystems.jcsmp.EndpointProperties;
+import com.solacesystems.jcsmp.JCSMPFactory;
 import com.solacesystems.jcsmp.JCSMPSession;
+import com.solacesystems.jcsmp.Queue;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.cloud.stream.binder.AbstractMessageChannelBinder;
 import org.springframework.cloud.stream.binder.ExtendedConsumerProperties;
@@ -40,14 +44,39 @@ public class SolaceMessageChannelBinder
 	}
 
 	@Override
-	protected MessageHandler createProducerMessageHandler(ProducerDestination destination, ExtendedProducerProperties<SolaceProducerProperties> producerProperties, MessageChannel errorChannel) throws Exception {
+	protected MessageHandler createProducerMessageHandler(ProducerDestination destination,
+														  ExtendedProducerProperties<SolaceProducerProperties> producerProperties,
+														  MessageChannel errorChannel)
+			throws Exception {
+
 		//TODO Handle ERROR Channel
 		return new JCSMPOutboundMessageHandler(destination, jcsmpSession, errorChannel, sessionProducerManager);
 	}
 
 	@Override
-	protected MessageProducer createConsumerEndpoint(ConsumerDestination destination, String group, ExtendedConsumerProperties<SolaceConsumerProperties> properties) throws Exception {
-		return new JCSMPInboundChannelAdapter(destination, jcsmpSession);
+	protected MessageProducer createConsumerEndpoint(ConsumerDestination destination, String group,
+													 ExtendedConsumerProperties<SolaceConsumerProperties> properties)
+			throws Exception {
+
+		// WORKAROUND (SOL-4272) ----------------------------------------------------------
+		// Temporary endpoints are only provisioned when the consumer is created.
+		// Ideally, these should be done within the provisioningProvider itself.
+		EndpointProperties endpointProperties = null;
+		Runnable postStart = null;
+
+		if (! SolaceProvisioningUtil.isDurableQueue(group, properties.getExtension())) {
+			endpointProperties = SolaceProvisioningUtil.getEndpointProperties(properties.getExtension());
+
+			postStart = () -> {
+				String queueName = destination.getName();
+				String topicName = provisioningProvider.getBoundTopicNameForQueue(queueName);
+				Queue queueReference = JCSMPFactory.onlyInstance().createQueue(queueName);
+				provisioningProvider.addSubscriptionToQueue(queueReference, topicName);
+			};
+		}
+		// --------------------------------------------------------------------------------
+
+		return new JCSMPInboundChannelAdapter(destination, jcsmpSession, endpointProperties, postStart);
 	}
 
 	@Override

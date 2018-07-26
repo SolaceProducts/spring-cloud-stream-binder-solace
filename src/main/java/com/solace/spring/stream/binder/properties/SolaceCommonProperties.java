@@ -3,7 +3,6 @@ package com.solace.spring.stream.binder.properties;
 import com.solacesystems.jcsmp.EndpointProperties;
 
 public class SolaceCommonProperties {
-	private boolean isDurableQueue = true;
 	private boolean isQueueNameGroupOnly = false;
 	private String prefix = "";
 	private Integer queueDiscardBehaviour = null;
@@ -12,14 +11,6 @@ public class SolaceCommonProperties {
 	private int queuePermission = EndpointProperties.PERMISSION_CONSUME;
 	private Integer queueQuota = null;
 	private Boolean isRespectsMsgTTL = null;
-
-	public boolean isDurableQueue() {
-		return isDurableQueue;
-	}
-
-	public void setDurableQueue(boolean durableQueue) {
-		isDurableQueue = durableQueue;
-	}
 
 	public boolean isQueueNameGroupOnly() {
 		return isQueueNameGroupOnly;
