@@ -1,5 +1,6 @@
 package com.solace.spring.stream.binder.provisioning;
 
+import com.solace.spring.stream.binder.properties.SolaceCommonProperties;
 import com.solacesystems.jcsmp.EndpointProperties;
 import com.solacesystems.jcsmp.JCSMPErrorResponseException;
 import com.solacesystems.jcsmp.JCSMPErrorResponseSubcodeEx;
@@ -20,12 +21,15 @@ import org.springframework.cloud.stream.provisioning.ProvisioningException;
 import org.springframework.cloud.stream.provisioning.ProvisioningProvider;
 import org.springframework.util.StringUtils;
 
+import javax.validation.constraints.NotNull;
+
 public class SolaceQueueProvisioner
 		implements ProvisioningProvider<ExtendedConsumerProperties<SolaceConsumerProperties>, ExtendedProducerProperties<SolaceProducerProperties>> {
 
 	private JCSMPSession jcsmpSession;
 
 	private static final Log logger = LogFactory.getLog(SolaceQueueProvisioner.class);
+	private static final String QUEUE_NAME_DELIM = ".";
 
 	public SolaceQueueProvisioner(JCSMPSession jcsmpSession) {
 		this.jcsmpSession = jcsmpSession;
@@ -33,43 +37,40 @@ public class SolaceQueueProvisioner
 
 	@Override
 	public ProducerDestination provisionProducerDestination(String name, ExtendedProducerProperties<SolaceProducerProperties> properties) throws ProvisioningException {
-		String topicName = name; //TODO Any fancy transforms
+		SolaceProducerProperties exProperties = properties.getExtension();
+		String topicName = properties.getExtension().getPrefix() + name;
 
 		for (String groupName : properties.getRequiredGroups()) {
-			String baseQueueName = properties.getExtension().isQueueNameGroupOnly() ? groupName : topicName + "." + groupName;
-
-			if (properties.isPartitioned()) { //TODO
-
-			} else {
-				Queue queue = provisionQueue(baseQueueName, true);
-				addSubscriptionToQueue(queue, topicName);
-			}
+			String queueName = getQueueName(topicName, groupName, exProperties);
+			Queue queue = provisionQueue(queueName, exProperties.isDurableQueue(), exProperties);
+			addSubscriptionToQueue(queue, topicName);
 		}
+
 		return new SolaceProducerDestination(topicName);
 	}
 
 	@Override
 	public ConsumerDestination provisionConsumerDestination(String name, String group, ExtendedConsumerProperties<SolaceConsumerProperties> properties) throws ProvisioningException {
-		//TODO Do anonymous endpoints when no group is given like RabbitMQ?
+		SolaceConsumerProperties exProperties = properties.getExtension();
+		String topicName = exProperties.getPrefix() + name;
+		boolean isAnonQueue = !StringUtils.hasText(group);
 
-		String topicName = name; //TODO Any fancy transforms
-
-		String baseQueueName = topicName + "." + (StringUtils.hasText(group) ? group : "default");
-		String queueName = baseQueueName; //TODO Any fancy transforms
-		if (properties.isPartitioned()) { //TODO Partitioning
-
-		}
-		Queue queue = provisionQueue(queueName, properties.getExtension().isDurableQueue());
+		String queueName = getQueueName(topicName, group, exProperties, isAnonQueue);
+		Queue queue = provisionQueue(queueName, ! isAnonQueue && exProperties.isDurableQueue(), exProperties);
 		addSubscriptionToQueue(queue, topicName);
+
 		return new SolaceConsumerDestination(queue.getName());
 	}
 
-	private Queue provisionQueue(String name, boolean isDurable) throws ProvisioningException {
-		//TODO Parameterize this?
+	private Queue provisionQueue(String name, boolean isDurable, SolaceCommonProperties properties) throws ProvisioningException {
 		EndpointProperties endpointProperties = new EndpointProperties();
-		endpointProperties.setPermission(EndpointProperties.PERMISSION_CONSUME);
 		endpointProperties.setAccessType(EndpointProperties.ACCESSTYPE_EXCLUSIVE);
-		endpointProperties.setQuota(1500);
+		endpointProperties.setDiscardBehavior(properties.getQueueDiscardBehaviour());
+		endpointProperties.setMaxMsgRedelivery(properties.getQueueMaxMsgRedelivery());
+		endpointProperties.setMaxMsgSize(properties.getQueueMaxMsgSize());
+		endpointProperties.setPermission(properties.getQueuePermission());
+		endpointProperties.setQuota(properties.getQueueQuota());
+		endpointProperties.setRespectsMsgTTL(properties.getRespectsMsgTTL());
 
 		Queue queue;
 		if (isDurable) {
@@ -113,6 +114,33 @@ public class SolaceQueueProvisioner
 			logger.error(msg, e);
 			throw new ProvisioningException(msg, e);
 		}
+	}
+
+	private String getQueueName(@NotNull String topicName, @NotNull String groupName,
+								@NotNull SolaceProducerProperties consumerProperties) {
+		return getQueueName(topicName, groupName, consumerProperties,
+				false, null);
+	}
+
+	private String getQueueName(@NotNull String topicName, @NotNull String groupName,
+								@NotNull SolaceConsumerProperties consumerProperties, boolean isAnonymous) {
+		return getQueueName(topicName, groupName, consumerProperties,
+				isAnonymous, consumerProperties.getAnonymousGroupPrefix());
+	}
+
+	private String getQueueName(@NotNull String topicName, @NotNull String groupName,
+								@NotNull SolaceCommonProperties properties,
+								boolean isAnonymous, String anonGroupPrefix) {
+		String queueName;
+		if (isAnonymous) {
+			queueName = topicName + QUEUE_NAME_DELIM + JCSMPFactory.onlyInstance().createUniqueName(anonGroupPrefix);
+		} else if (properties.isQueueNameGroupOnly()) {
+			queueName = groupName;
+		} else {
+			queueName = topicName + QUEUE_NAME_DELIM + groupName;
+		}
+
+		return properties.getPrefix() + queueName;
 	}
 
 	private static final class SolaceProducerDestination implements ProducerDestination {

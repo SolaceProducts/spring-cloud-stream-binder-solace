@@ -1,14 +1,13 @@
 package com.solace.spring.stream.binder.properties;
 
 public class SolaceConsumerProperties extends SolaceCommonProperties {
-	private boolean isDurableQueue = true;
+	private String anonymousGroupPrefix = "anon";
 
-	public boolean isDurableQueue() {
-		return isDurableQueue;
+	public String getAnonymousGroupPrefix() {
+		return anonymousGroupPrefix;
 	}
 
-	public SolaceConsumerProperties setDurableQueue(boolean durableQueue) {
-		isDurableQueue = durableQueue;
-		return this;
+	public void setAnonymousGroupPrefix(String anonymousGroupPrefix) {
+		this.anonymousGroupPrefix = anonymousGroupPrefix;
 	}
 }
