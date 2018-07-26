@@ -41,6 +41,11 @@ public class SolaceQueueProvisioner
 															ExtendedProducerProperties<SolaceProducerProperties> properties)
 			throws ProvisioningException {
 
+		if (properties.isPartitioned()) {
+			logger.warn("Partitioning is not supported with this version of Solace's cloud stream binder.\n" +
+					"Provisioning will continue under the assumption that it is disabled...");
+		}
+
 		String topicName = SolaceProvisioningUtil.getTopicName(name, properties.getExtension());
 
 		for (String groupName : properties.getRequiredGroups()) {
@@ -59,6 +64,11 @@ public class SolaceQueueProvisioner
 	public ConsumerDestination provisionConsumerDestination(String name, String group,
 															ExtendedConsumerProperties<SolaceConsumerProperties> properties)
 			throws ProvisioningException {
+
+		if (properties.isPartitioned()) {
+			logger.warn("Partitioning is not supported with this version of Solace's cloud stream binder.\n" +
+					"Provisioning will continue under the assumption that it is disabled...");
+		}
 
 		String topicName = SolaceProvisioningUtil.getTopicName(name, properties.getExtension());
 		boolean isAnonQueue = SolaceProvisioningUtil.isAnonQueue(group);
