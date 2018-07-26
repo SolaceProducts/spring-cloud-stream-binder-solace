@@ -28,8 +28,8 @@ public class SolaceProvisioningUtil {
 		return !StringUtils.hasText(groupName);
 	}
 
-	public static boolean isDurableQueue(String groupName, SolaceConsumerProperties consumerProperties) {
-		return !isAnonQueue(groupName) && consumerProperties.isNonRequiredQueueDurable();
+	public static boolean isDurableQueue(String groupName) {
+		return !isAnonQueue(groupName);
 	}
 
 	public static String getTopicName(String baseTopicName, SolaceCommonProperties properties) {

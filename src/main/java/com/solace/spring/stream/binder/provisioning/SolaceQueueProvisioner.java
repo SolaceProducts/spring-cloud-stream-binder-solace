@@ -62,7 +62,7 @@ public class SolaceQueueProvisioner
 
 		String topicName = SolaceProvisioningUtil.getTopicName(name, properties.getExtension());
 		boolean isAnonQueue = SolaceProvisioningUtil.isAnonQueue(group);
-		boolean isDurableQueue = SolaceProvisioningUtil.isDurableQueue(group, properties.getExtension());
+		boolean isDurableQueue = SolaceProvisioningUtil.isDurableQueue(group);
 		String queueName = SolaceProvisioningUtil.getQueueName(topicName, group, properties.getExtension(), isAnonQueue);
 
 		logger.info(isAnonQueue ?

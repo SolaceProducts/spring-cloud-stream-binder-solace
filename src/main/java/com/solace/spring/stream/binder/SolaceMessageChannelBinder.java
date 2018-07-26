@@ -64,7 +64,7 @@ public class SolaceMessageChannelBinder
 		EndpointProperties endpointProperties = null;
 		Runnable postStart = null;
 
-		if (! SolaceProvisioningUtil.isDurableQueue(group, properties.getExtension())) {
+		if (! SolaceProvisioningUtil.isDurableQueue(group)) {
 			endpointProperties = SolaceProvisioningUtil.getEndpointProperties(properties.getExtension());
 
 			postStart = () -> {
