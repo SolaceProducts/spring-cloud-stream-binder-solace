@@ -45,7 +45,7 @@ class XMLMessageMapper {
 		} catch (ClassNotFoundException e) {
 			String msg = String.format("Class %s does not exist", msgType);
 			logger.error(msg, e);
-			throw new IllegalArgumentException(msg, e);
+			throw new MessagingException(msg, e);
 		} catch (IOException e) {
 			String msg = "Failed to marshal the message payload";
 			logger.error(msg, e);

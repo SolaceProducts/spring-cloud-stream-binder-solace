@@ -1,6 +1,5 @@
 package com.solace.spring.stream.binder;
 
-import com.solacesystems.jcsmp.BytesXMLMessage;
 import com.solacesystems.jcsmp.ConsumerFlowProperties;
 import com.solacesystems.jcsmp.EndpointProperties;
 import com.solacesystems.jcsmp.FlowReceiver;
@@ -12,26 +11,33 @@ import com.solacesystems.jcsmp.XMLMessageListener;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.cloud.stream.provisioning.ConsumerDestination;
+import org.springframework.core.AttributeAccessor;
 import org.springframework.integration.context.OrderlyShutdownCapable;
 import org.springframework.integration.endpoint.MessageProducerSupport;
-import org.springframework.integration.support.DefaultMessageBuilderFactory;
 import org.springframework.lang.Nullable;
 import org.springframework.messaging.MessagingException;
+import org.springframework.retry.RecoveryCallback;
+import org.springframework.retry.support.RetryTemplate;
+import org.springframework.util.Assert;
+
+import java.util.UUID;
 
 class JCSMPInboundChannelAdapter extends MessageProducerSupport implements OrderlyShutdownCapable {
-	private String queueName;
-	private JCSMPSession jcsmpSession;
-	private EndpointProperties endpointProperties;
+	private final String id = UUID.randomUUID().toString();
+	private final ConsumerDestination consumerDestination;
+	private final JCSMPSession jcsmpSession;
+	private final EndpointProperties endpointProperties;
 	private final Runnable postStart;
+	private RetryTemplate retryTemplate;
+	private RecoveryCallback<?> recoveryCallback;
 	private FlowReceiver consumerFlowReceiver;
-	private XMLMessageListener listener = new InboundXMLMessageListener();
-	private XMLMessageMapper xmlMessageMapper = new XMLMessageMapper();
 
 	private static final Log logger = LogFactory.getLog(JCSMPInboundChannelAdapter.class);
+	private static final ThreadLocal<AttributeAccessor> attributesHolder = new ThreadLocal<>();
 
 	JCSMPInboundChannelAdapter(ConsumerDestination consumerDestination, JCSMPSession jcsmpSession,
 							   @Nullable EndpointProperties endpointProperties, @Nullable Runnable postStart) {
-		this.queueName = consumerDestination.getName();
+		this.consumerDestination = consumerDestination;
 		this.jcsmpSession = jcsmpSession;
 		this.endpointProperties = endpointProperties;
 		this.postStart = postStart;
@@ -39,8 +45,16 @@ class JCSMPInboundChannelAdapter extends MessageProducerSupport implements Order
 
 	@Override
 	protected void doStart() {
+		final String queueName = consumerDestination.getName();
+		logger.info(String.format("Creating consumer flow for queue %s <inbound adapter %s>", queueName, id));
+
+		if (isRunning()) {
+			logger.warn(String.format("Nothing to do. Inbound message channel adapter %s is already running", id));
+			return;
+		}
+
+		XMLMessageListener listener = buildListener();
 		try {
-			logger.info(String.format("Creating consumer flow for queue %s", queueName));
 			final ConsumerFlowProperties flowProperties = new ConsumerFlowProperties();
 			flowProperties.setEndpoint(JCSMPFactory.onlyInstance().createQueue(queueName));
 			flowProperties.setAckMode(JCSMPProperties.SUPPORTED_MESSAGE_ACK_AUTO);
@@ -59,7 +73,8 @@ class JCSMPInboundChannelAdapter extends MessageProducerSupport implements Order
 
 	@Override
 	protected void doStop() {
-		logger.info(String.format("Stopping consumer flow from queue %s", queueName));
+		final String queueName = consumerDestination.getName();
+		logger.info(String.format("Stopping consumer flow from queue %s <inbound adapter ID: %s>", queueName, id));
 		consumerFlowReceiver.stop();
 	}
 
@@ -74,18 +89,38 @@ class JCSMPInboundChannelAdapter extends MessageProducerSupport implements Order
 		return 0;
 	}
 
-	private class InboundXMLMessageListener implements XMLMessageListener {
+	public void setRetryTemplate(RetryTemplate retryTemplate) {
+		this.retryTemplate = retryTemplate;
+	}
 
-		@Override
-		public void onReceive(BytesXMLMessage bytesXMLMessage) {
-			//TODO Any headers?
-			Object payload = xmlMessageMapper.map(bytesXMLMessage);
-			sendMessage(new DefaultMessageBuilderFactory().withPayload(payload).build());
-		}
+	public void setRecoveryCallback(RecoveryCallback<?> recoveryCallback) {
+		this.recoveryCallback = recoveryCallback;
+	}
 
-		@Override
-		public void onException(JCSMPException e) {
-			logger.error("An unrecoverable error was received while listening for messages", e);
+	private XMLMessageListener buildListener() {
+		XMLMessageListener listener;
+		if (retryTemplate != null) {
+			Assert.state(getErrorChannel() == null,
+					"Cannot have an 'errorChannel' property when a 'RetryTemplate' is provided; " +
+							"use an 'ErrorMessageSendingRecoverer' in the 'recoveryCallback' property to send " +
+							"an error message when retries are exhausted");
+			RetryableInboundXMLMessageListener retryableMessageListener = new RetryableInboundXMLMessageListener(
+					consumerDestination,
+					this::sendMessage,
+					(exception) -> sendErrorMessageIfNecessary(null, exception),
+					retryTemplate,
+					recoveryCallback,
+					attributesHolder
+			);
+			retryTemplate.registerListener(retryableMessageListener);
+			listener = retryableMessageListener;
+		} else {
+			listener = new InboundXMLMessageListener(
+					consumerDestination,
+					this::sendMessage,
+					(exception) -> sendErrorMessageIfNecessary(null, exception)
+			);
 		}
+		return listener;
 	}
 }
