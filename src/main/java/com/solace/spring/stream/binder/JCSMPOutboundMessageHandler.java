@@ -1,6 +1,5 @@
 package com.solace.spring.stream.binder;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.solacesystems.jcsmp.DeliveryMode;
 import com.solacesystems.jcsmp.JCSMPException;
 import com.solacesystems.jcsmp.JCSMPFactory;
@@ -46,13 +45,8 @@ class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
 					String.format("Cannot send message, message handler %s is not running", id), message, null);
 		}
 
-		XMLMessage xmlMessage;
-		try {
-			xmlMessage = xmlMessageMapper.map(message.getPayload(), message.getPayload().getClass());
-			xmlMessage.setDeliveryMode(DeliveryMode.PERSISTENT);
-		} catch (JsonProcessingException e) {
-			throw handleMessagingException("Failed to serialize payload", message, e);
-		}
+		XMLMessage xmlMessage = xmlMessageMapper.map(message);
+		xmlMessage.setDeliveryMode(DeliveryMode.PERSISTENT);
 
 		try {
 			producer.send(xmlMessage, topic);

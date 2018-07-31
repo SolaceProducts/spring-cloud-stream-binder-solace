@@ -1,57 +1,73 @@
 package com.solace.spring.stream.binder;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectReader;
-import com.fasterxml.jackson.databind.ObjectWriter;
 import com.solacesystems.jcsmp.BytesXMLMessage;
 import com.solacesystems.jcsmp.JCSMPFactory;
 import com.solacesystems.jcsmp.XMLMessage;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.integration.support.DefaultMessageBuilderFactory;
+import org.springframework.messaging.Message;
 import org.springframework.messaging.MessagingException;
+import org.springframework.util.MimeTypeUtils;
+import org.springframework.util.SerializationUtils;
+import org.springframework.util.StringUtils;
 
-import java.io.IOException;
+import java.io.Serializable;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.atomic.AtomicInteger;
 
 class XMLMessageMapper {
-	private static final ObjectMapper objectMapper = new ObjectMapper();
 	private static final Log logger = LogFactory.getLog(XMLMessageMapper.class);
+	private static final Charset DEFAULT_ENCODING = StandardCharsets.UTF_8;
+	private static final String MIME_JAVA_SERIALIZED_OBJECT = "application/x-java-serialized-object";
 
-	public <T> XMLMessage map(Object payload, Class<T> msgType) throws JsonProcessingException {
+	public XMLMessage map(Message<?> message) {
+		Object payload = message.getPayload();
+		String mimeType;
+		byte[] attachment;
+		Charset charset = null;
+
+		if (payload instanceof byte[]) {
+			mimeType = MimeTypeUtils.APPLICATION_OCTET_STREAM_VALUE;
+			attachment = (byte[]) payload;
+		} else if (payload instanceof String) {
+			mimeType = MimeTypeUtils.TEXT_PLAIN_VALUE;
+			charset = DEFAULT_ENCODING;
+			attachment = ((String) payload).getBytes(charset);
+		} else if (payload instanceof Serializable) {
+			mimeType = MIME_JAVA_SERIALIZED_OBJECT;
+			attachment = SerializationUtils.serialize(payload);
+		} else {
+			throw new IllegalArgumentException(String.format(
+					"Invalid payload received. Expected byte[], String, or Serializable. Received: %s",
+					payload.getClass().getName()));
+		}
+
 		BytesXMLMessage xmlMessage = JCSMPFactory.onlyInstance().createMessage(BytesXMLMessage.class);
-		String serializedPayload;
-
-		ObjectWriter writer = objectMapper.writerFor(msgType);
-		serializedPayload = writer.writeValueAsString(payload);
-
-		xmlMessage.writeAttachment(serializedPayload.getBytes());
-		xmlMessage.setApplicationMessageType(msgType.getName());
+		xmlMessage.writeAttachment(attachment);
+		xmlMessage.setHTTPContentType(mimeType);
+		if (charset != null) xmlMessage.setHTTPContentEncoding(charset.name());
 		return xmlMessage;
 	}
 
-	public <T> T map(XMLMessage xmlMessage) throws MessagingException {
-		String payloadStr = new String(xmlMessage.getAttachmentByteBuffer().array());
-		String msgType = xmlMessage.getApplicationMessageType();
+	public Message<?> map(XMLMessage xmlMessage) throws MessagingException {
+		byte[] attachment = xmlMessage.getAttachmentByteBuffer().array();
+		String contentType = xmlMessage.getHTTPContentType();
+		String encodingName = xmlMessage.getHTTPContentEncoding();
 
-		if (msgType == null || msgType.trim().equals("")) {
-			throw new IllegalArgumentException("type not specified");
+		Object payload = null;
+		if (contentType != null) {
+			if (contentType.startsWith(MimeTypeUtils.TEXT_PLAIN.getType())) {
+				Charset encoding = StringUtils.hasText(encodingName) ? Charset.forName(encodingName) : DEFAULT_ENCODING;
+				payload = new String(attachment, encoding);
+			} else if (contentType.equalsIgnoreCase(MIME_JAVA_SERIALIZED_OBJECT)) {
+				payload = SerializationUtils.deserialize(attachment);
+			}
 		}
 
-		T payload;
-		try {
-			Class<?> clazz = Class.forName(msgType);
-			ObjectReader reader = objectMapper.readerFor(clazz);
-			payload = reader.readValue(payloadStr);
-		} catch (ClassNotFoundException e) {
-			String msg = String.format("Class %s does not exist", msgType);
-			logger.error(msg, e);
-			throw new MessagingException(msg, e);
-		} catch (IOException e) {
-			String msg = "Failed to marshal the message payload";
-			logger.error(msg, e);
-			throw new MessagingException(msg, e);
-		}
-
-		return payload;
+		return new DefaultMessageBuilderFactory().withPayload(payload != null ? payload : attachment)
+				.setHeaderIfAbsent("deliveryAttempt", new AtomicInteger(0))
+				.build();
 	}
 }

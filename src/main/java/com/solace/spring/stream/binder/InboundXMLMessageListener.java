@@ -13,8 +13,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 class InboundXMLMessageListener implements XMLMessageListener {
-	final ConsumerDestination consumerDestination;
 	final XMLMessageMapper xmlMessageMapper = new XMLMessageMapper();
+	final ConsumerDestination consumerDestination;
 	final Consumer<Message<?>> messageConsumer;
 	private final Function<RuntimeException,Boolean> errorHandlerFunction;
 
@@ -30,8 +30,7 @@ class InboundXMLMessageListener implements XMLMessageListener {
 
 	@Override
 	public void onReceive(BytesXMLMessage bytesXMLMessage) {
-		Object payload = xmlMessageMapper.map(bytesXMLMessage);
-		Message<?> message = new DefaultMessageBuilderFactory().withPayload(payload).build();
+		Message<?> message = xmlMessageMapper.map(bytesXMLMessage);
 
 		try {
 			messageConsumer.accept(message);

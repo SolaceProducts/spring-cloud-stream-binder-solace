@@ -42,13 +42,8 @@ class RetryableInboundXMLMessageListener extends InboundXMLMessageListener imple
 	public void onReceive(BytesXMLMessage bytesXMLMessage) {
 		//TODO Any headers?
 
-		final Object payload = xmlMessageMapper.map(bytesXMLMessage);
-		final Message<?> message = new DefaultMessageBuilderFactory()
-				.withPayload(payload)
-				.setHeaderIfAbsent("deliveryAttempt", new AtomicInteger(0))
-				.build();
-
 		retryTemplate.execute((context) -> {
+			final Message<?> message = xmlMessageMapper.map(bytesXMLMessage);
 			Objects.requireNonNull(StaticMessageHeaderAccessor.getDeliveryAttempt(message),
 							"delivery attempt header was not set")
 					.incrementAndGet();
