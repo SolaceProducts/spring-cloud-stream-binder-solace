@@ -1,12 +1,12 @@
-package com.solace.spring.stream.binder;
+package com.solace.spring.stream.binder.inbound;
 
+import com.solace.spring.stream.binder.util.XMLMessageMapper;
 import com.solacesystems.jcsmp.BytesXMLMessage;
 import com.solacesystems.jcsmp.JCSMPException;
 import com.solacesystems.jcsmp.XMLMessageListener;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.cloud.stream.provisioning.ConsumerDestination;
-import org.springframework.integration.support.DefaultMessageBuilderFactory;
 import org.springframework.messaging.Message;
 
 import java.util.function.Consumer;

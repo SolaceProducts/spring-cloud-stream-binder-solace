@@ -1,4 +1,4 @@
-package com.solace.spring.stream.binder;
+package com.solace.spring.stream.binder.util;
 
 import com.solacesystems.jcsmp.JCSMPException;
 import com.solacesystems.jcsmp.JCSMPSession;
@@ -10,7 +10,7 @@ import org.apache.commons.logging.LogFactory;
 import java.util.HashSet;
 import java.util.Set;
 
-class JCSMPSessionProducerManager {
+public class JCSMPSessionProducerManager {
 	private final JCSMPSession session;
 	private XMLMessageProducer producer;
 	private final Object lock = new Object();
@@ -18,11 +18,11 @@ class JCSMPSessionProducerManager {
 
 	private static final Log logger = LogFactory.getLog(JCSMPSessionProducerManager.class);
 
-	JCSMPSessionProducerManager(JCSMPSession session) {
+	public JCSMPSessionProducerManager(JCSMPSession session) {
 		this.session = session;
 	}
 
-	XMLMessageProducer getProducer(String messageHandlerId) throws JCSMPException {
+	public XMLMessageProducer getProducer(String messageHandlerId) throws JCSMPException {
 		synchronized (lock) {
 			if (messageHandlers.isEmpty()) {
 				logger.info(String.format("No message producer exists for session %s, a new one will be created",
@@ -39,7 +39,7 @@ class JCSMPSessionProducerManager {
 		return producer;
 	}
 
-	void closeProducer(String messageHandlerId) {
+	public void closeProducer(String messageHandlerId) {
 		synchronized (lock) {
 			if (messageHandlers.contains(messageHandlerId) && messageHandlers.size() <= 1) {
 				logger.info(String.format("%s is the last message handler for session %s, closing producer...",

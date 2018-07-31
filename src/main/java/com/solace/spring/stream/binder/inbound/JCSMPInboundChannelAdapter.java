@@ -1,4 +1,4 @@
-package com.solace.spring.stream.binder;
+package com.solace.spring.stream.binder.inbound;
 
 import com.solacesystems.jcsmp.ConsumerFlowProperties;
 import com.solacesystems.jcsmp.EndpointProperties;
@@ -22,7 +22,7 @@ import org.springframework.util.Assert;
 
 import java.util.UUID;
 
-class JCSMPInboundChannelAdapter extends MessageProducerSupport implements OrderlyShutdownCapable {
+public class JCSMPInboundChannelAdapter extends MessageProducerSupport implements OrderlyShutdownCapable {
 	private final String id = UUID.randomUUID().toString();
 	private final ConsumerDestination consumerDestination;
 	private final JCSMPSession jcsmpSession;
@@ -35,7 +35,7 @@ class JCSMPInboundChannelAdapter extends MessageProducerSupport implements Order
 	private static final Log logger = LogFactory.getLog(JCSMPInboundChannelAdapter.class);
 	private static final ThreadLocal<AttributeAccessor> attributesHolder = new ThreadLocal<>();
 
-	JCSMPInboundChannelAdapter(ConsumerDestination consumerDestination, JCSMPSession jcsmpSession,
+	public JCSMPInboundChannelAdapter(ConsumerDestination consumerDestination, JCSMPSession jcsmpSession,
 							   @Nullable EndpointProperties endpointProperties, @Nullable Runnable postStart) {
 		this.consumerDestination = consumerDestination;
 		this.jcsmpSession = jcsmpSession;

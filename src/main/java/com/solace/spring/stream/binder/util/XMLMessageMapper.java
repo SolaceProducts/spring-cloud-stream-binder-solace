@@ -1,4 +1,4 @@
-package com.solace.spring.stream.binder;
+package com.solace.spring.stream.binder.util;
 
 import com.solacesystems.jcsmp.BytesXMLMessage;
 import com.solacesystems.jcsmp.JCSMPFactory;
@@ -17,7 +17,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicInteger;
 
-class XMLMessageMapper {
+public class XMLMessageMapper {
 	private static final Log logger = LogFactory.getLog(XMLMessageMapper.class);
 	private static final Charset DEFAULT_ENCODING = StandardCharsets.UTF_8;
 	private static final String MIME_JAVA_SERIALIZED_OBJECT = "application/x-java-serialized-object";

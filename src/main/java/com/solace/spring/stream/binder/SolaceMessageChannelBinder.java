@@ -1,5 +1,8 @@
 package com.solace.spring.stream.binder;
 
+import com.solace.spring.stream.binder.inbound.JCSMPInboundChannelAdapter;
+import com.solace.spring.stream.binder.outbound.JCSMPOutboundMessageHandler;
+import com.solace.spring.stream.binder.util.JCSMPSessionProducerManager;
 import com.solace.spring.stream.binder.util.SolaceProvisioningUtil;
 import com.solacesystems.jcsmp.EndpointProperties;
 import com.solacesystems.jcsmp.JCSMPFactory;
@@ -21,8 +24,6 @@ import org.springframework.cloud.stream.provisioning.ProducerDestination;
 import org.springframework.integration.core.MessageProducer;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
-import org.springframework.retry.RecoveryCallback;
-import org.springframework.retry.support.RetryTemplate;
 
 public class SolaceMessageChannelBinder
 		extends AbstractMessageChannelBinder<

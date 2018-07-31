@@ -1,11 +1,10 @@
-package com.solace.spring.stream.binder;
+package com.solace.spring.stream.binder.inbound;
 
 import com.solacesystems.jcsmp.BytesXMLMessage;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.cloud.stream.provisioning.ConsumerDestination;
 import org.springframework.core.AttributeAccessor;
-import org.springframework.integration.support.DefaultMessageBuilderFactory;
 import org.springframework.integration.support.StaticMessageHeaderAccessor;
 import org.springframework.messaging.Message;
 import org.springframework.retry.RecoveryCallback;
@@ -15,7 +14,6 @@ import org.springframework.retry.RetryListener;
 import org.springframework.retry.support.RetryTemplate;
 
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
 

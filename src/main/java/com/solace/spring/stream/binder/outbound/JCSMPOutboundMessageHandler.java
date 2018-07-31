@@ -1,5 +1,7 @@
-package com.solace.spring.stream.binder;
+package com.solace.spring.stream.binder.outbound;
 
+import com.solace.spring.stream.binder.util.JCSMPSessionProducerManager;
+import com.solace.spring.stream.binder.util.XMLMessageMapper;
 import com.solacesystems.jcsmp.DeliveryMode;
 import com.solacesystems.jcsmp.JCSMPException;
 import com.solacesystems.jcsmp.JCSMPFactory;
@@ -18,7 +20,7 @@ import org.springframework.messaging.MessagingException;
 
 import java.util.UUID;
 
-class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
+public class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
 	private final String id = UUID.randomUUID().toString();
 	private final Topic topic;
 	private final JCSMPSession jcsmpSession;
@@ -30,7 +32,7 @@ class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
 
 	private static final Log logger = LogFactory.getLog(JCSMPOutboundMessageHandler.class);
 
-	JCSMPOutboundMessageHandler(ProducerDestination destination, JCSMPSession jcsmpSession, MessageChannel errorChannel,
+	public JCSMPOutboundMessageHandler(ProducerDestination destination, JCSMPSession jcsmpSession, MessageChannel errorChannel,
 								JCSMPSessionProducerManager sessionProducerManager) {
 		this.topic = JCSMPFactory.onlyInstance().createTopic(destination.getName());
 		this.jcsmpSession = jcsmpSession;
