@@ -3,26 +3,26 @@ package com.solace.spring.stream.binder.provisioning;
 import org.springframework.cloud.stream.provisioning.ProducerDestination;
 
 class SolaceProducerDestination implements ProducerDestination {
-	private String topicEndpointName;
+	private String topicName;
 
-	SolaceProducerDestination(String topicEndpointName) {
-		this.topicEndpointName = topicEndpointName;
+	SolaceProducerDestination(String topicName) {
+		this.topicName = topicName;
 	}
 
 	@Override
 	public String getName() {
-		return topicEndpointName;
+		return topicName;
 	}
 
 	@Override
 	public String getNameForPartition(int partition) {
-		return topicEndpointName;
+		return topicName;
 	}
 
 	@Override
 	public String toString() {
 		final StringBuffer sb = new StringBuffer("SolaceProducerDestination{");
-		sb.append("topicEndpointName='").append(topicEndpointName).append('\'');
+		sb.append("topicName='").append(topicName).append('\'');
 		sb.append('}');
 		return sb.toString();
 	}
