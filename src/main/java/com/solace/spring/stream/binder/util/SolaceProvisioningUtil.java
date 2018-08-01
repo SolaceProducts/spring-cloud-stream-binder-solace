@@ -54,8 +54,6 @@ public class SolaceProvisioningUtil {
 		String queueName;
 		if (isAnonymous) {
 			queueName = topicName + QUEUE_NAME_DELIM + JCSMPFactory.onlyInstance().createUniqueName(anonGroupPrefix);
-		} else if (properties.isQueueNameGroupOnly()) {
-			queueName = groupName;
 		} else {
 			queueName = topicName + QUEUE_NAME_DELIM + groupName;
 		}

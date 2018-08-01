@@ -3,7 +3,6 @@ package com.solace.spring.stream.binder.properties;
 import com.solacesystems.jcsmp.EndpointProperties;
 
 public class SolaceCommonProperties {
-	private boolean isQueueNameGroupOnly = false;
 	private String prefix = "";
 	private Integer queueDiscardBehaviour = null;
 	private Integer queueMaxMsgRedelivery = null;
@@ -11,14 +10,6 @@ public class SolaceCommonProperties {
 	private int queuePermission = EndpointProperties.PERMISSION_CONSUME;
 	private Integer queueQuota = null;
 	private Boolean isRespectsMsgTTL = null;
-
-	public boolean isQueueNameGroupOnly() {
-		return isQueueNameGroupOnly;
-	}
-
-	public void setQueueNameGroupOnly(boolean queueNameGroupOnly) {
-		isQueueNameGroupOnly = queueNameGroupOnly;
-	}
 
 	public String getPrefix() {
 		return prefix;
