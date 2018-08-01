@@ -78,7 +78,8 @@ public class SolaceMessageChannelBinder
 		};
 		// --------------------------------------------------------------------------------
 
-		JCSMPInboundChannelAdapter adapter = new JCSMPInboundChannelAdapter(destination, jcsmpSession, endpointProperties, postStart);
+		JCSMPInboundChannelAdapter adapter = new JCSMPInboundChannelAdapter(destination, jcsmpSession,
+				endpointProperties, postStart);
 
 		// Error infrastructure configuration
 		ErrorInfrastructure errorInfra = registerErrorInfrastructure(destination, group, properties);
@@ -100,6 +101,12 @@ public class SolaceMessageChannelBinder
 	@Override
 	public SolaceProducerProperties getExtendedProducerProperties(String channelName) {
 		return extendedBindingProperties.getExtendedProducerProperties(channelName);
+	}
+
+	@Override
+	protected String errorsBaseName(ConsumerDestination destination, String group,
+									ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties) {
+		return destination.getName() + ".errors"; // topic.group is already included in the queue/destination's name
 	}
 
 	public void setExtendedBindingProperties(SolaceExtendedBindingProperties extendedBindingProperties) {
