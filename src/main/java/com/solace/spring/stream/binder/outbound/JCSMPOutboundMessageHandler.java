@@ -25,24 +25,24 @@ public class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
 	private final Topic topic;
 	private final JCSMPSession jcsmpSession;
 	private MessageChannel errorChannel;
-	private JCSMPSessionProducerManager sessionProducerManager;
+	private JCSMPSessionProducerManager producerManager;
 	private XMLMessageProducer producer;
-	private XMLMessageMapper xmlMessageMapper = new XMLMessageMapper();
+	private final XMLMessageMapper xmlMessageMapper = new XMLMessageMapper();
 	private boolean isRunning = false;
 
 	private static final Log logger = LogFactory.getLog(JCSMPOutboundMessageHandler.class);
 
 	public JCSMPOutboundMessageHandler(ProducerDestination destination, JCSMPSession jcsmpSession, MessageChannel errorChannel,
-								JCSMPSessionProducerManager sessionProducerManager) {
+								JCSMPSessionProducerManager producerManager) {
 		this.topic = JCSMPFactory.onlyInstance().createTopic(destination.getName());
 		this.jcsmpSession = jcsmpSession;
 		this.errorChannel = errorChannel;
-		this.sessionProducerManager = sessionProducerManager;
+		this.producerManager = producerManager;
 	}
 
 	@Override
 	public void handleMessage(Message<?> message) throws MessagingException {
-		if (! isRunning) {
+		if (! isRunning()) {
 			throw handleMessagingException(
 					String.format("Cannot send message, message handler %s is not running", id), message, null);
 		}
@@ -67,8 +67,8 @@ public class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
 		}
 
 		try {
-			producer = sessionProducerManager.getProducer(id);
-		} catch (JCSMPException e) {
+			producer = producerManager.get(id);
+		} catch (Exception e) {
 			String msg = String.format("Unable to get a message producer for session %s", jcsmpSession.getSessionName());
 			logger.error(msg, e);
 			throw new RuntimeException(msg, e);
@@ -80,7 +80,7 @@ public class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
 	@Override
 	public void stop() {
 		logger.info(String.format("Stopping producer to topic %s <message handler ID: %s>", topic.getName(), id));
-		sessionProducerManager.closeProducer(id);
+		producerManager.close(id);
 		isRunning = false;
 	}
 

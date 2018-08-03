@@ -7,6 +7,7 @@ import com.solacesystems.jcsmp.JCSMPException;
 import com.solacesystems.jcsmp.JCSMPFactory;
 import com.solacesystems.jcsmp.JCSMPProperties;
 import com.solacesystems.jcsmp.JCSMPSession;
+import com.solacesystems.jcsmp.Queue;
 import com.solacesystems.jcsmp.XMLMessageListener;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -21,13 +22,14 @@ import org.springframework.retry.support.RetryTemplate;
 import org.springframework.util.Assert;
 
 import java.util.UUID;
+import java.util.function.Consumer;
 
 public class JCSMPInboundChannelAdapter extends MessageProducerSupport implements OrderlyShutdownCapable {
 	private final String id = UUID.randomUUID().toString();
 	private final ConsumerDestination consumerDestination;
 	private final JCSMPSession jcsmpSession;
 	private final EndpointProperties endpointProperties;
-	private final Runnable postStart;
+	private final Consumer<Queue> postStart;
 	private RetryTemplate retryTemplate;
 	private RecoveryCallback<?> recoveryCallback;
 	private FlowReceiver consumerFlowReceiver;
@@ -36,7 +38,7 @@ public class JCSMPInboundChannelAdapter extends MessageProducerSupport implement
 	private static final ThreadLocal<AttributeAccessor> attributesHolder = new ThreadLocal<>();
 
 	public JCSMPInboundChannelAdapter(ConsumerDestination consumerDestination, JCSMPSession jcsmpSession,
-							   @Nullable EndpointProperties endpointProperties, @Nullable Runnable postStart) {
+							   @Nullable EndpointProperties endpointProperties, @Nullable Consumer<Queue> postStart) {
 		this.consumerDestination = consumerDestination;
 		this.jcsmpSession = jcsmpSession;
 		this.endpointProperties = endpointProperties;
@@ -54,9 +56,10 @@ public class JCSMPInboundChannelAdapter extends MessageProducerSupport implement
 		}
 
 		XMLMessageListener listener = buildListener();
+		Queue queue = JCSMPFactory.onlyInstance().createQueue(queueName);
 		try {
 			final ConsumerFlowProperties flowProperties = new ConsumerFlowProperties();
-			flowProperties.setEndpoint(JCSMPFactory.onlyInstance().createQueue(queueName));
+			flowProperties.setEndpoint(queue);
 			flowProperties.setAckMode(JCSMPProperties.SUPPORTED_MESSAGE_ACK_AUTO);
 			consumerFlowReceiver = jcsmpSession.createFlow(listener, flowProperties, endpointProperties);
 			consumerFlowReceiver.start();
@@ -67,7 +70,7 @@ public class JCSMPInboundChannelAdapter extends MessageProducerSupport implement
 		}
 
 		if (postStart != null) {
-			postStart.run();
+			postStart.accept(queue);
 		}
 	}
 

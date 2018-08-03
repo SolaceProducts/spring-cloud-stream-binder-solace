@@ -7,54 +7,26 @@ import com.solacesystems.jcsmp.XMLMessageProducer;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import java.util.HashSet;
-import java.util.Set;
-
-public class JCSMPSessionProducerManager {
-	private final JCSMPSession session;
-	private XMLMessageProducer producer;
-	private final Object lock = new Object();
-	private Set<String> messageHandlers = new HashSet<>();
+public class JCSMPSessionProducerManager extends SharedResourceManager<XMLMessageProducer> {
+	private JCSMPSession session;
 
 	private static final Log logger = LogFactory.getLog(JCSMPSessionProducerManager.class);
 
 	public JCSMPSessionProducerManager(JCSMPSession session) {
+		super("producer");
 		this.session = session;
 	}
 
-	public XMLMessageProducer getProducer(String messageHandlerId) throws JCSMPException {
-		synchronized (lock) {
-			if (messageHandlers.isEmpty()) {
-				logger.info(String.format("No message producer exists for session %s, a new one will be created",
-						session.getSessionName()));
-				producer = session.getMessageProducer(publisherEventHandler);
-			} else {
-				logger.info(String.format(
-						"A message producer already exists for session %s, reusing it",
-						session.getSessionName()));
-			}
-
-			messageHandlers.add(messageHandlerId);
-		}
-		return producer;
+	@Override
+	XMLMessageProducer create() throws JCSMPException {
+		return session.getMessageProducer(publisherEventHandler);
 	}
 
-	public void closeProducer(String messageHandlerId) {
-		synchronized (lock) {
-			if (messageHandlers.contains(messageHandlerId) && messageHandlers.size() <= 1) {
-				logger.info(String.format("%s is the last message handler for session %s, closing producer...",
-						messageHandlerId, session.getSessionName()));
-				producer.close();
-				producer = null;
-			} else {
-				logger.info(String.format("%s is not the last message handler for session %s, persisting producer...",
-						messageHandlerId, session.getSessionName()));
-			}
-			messageHandlers.remove(messageHandlerId);
-		}
+	@Override
+	void close() {
+		sharedResource.close();
 	}
 
-	//TODO Make this a configurable property?
 	private JCSMPStreamingPublishEventHandler publisherEventHandler = new JCSMPStreamingPublishEventHandler() {
 		@Override
 		public void responseReceived(String messageID) {
