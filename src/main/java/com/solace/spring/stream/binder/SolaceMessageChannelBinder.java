@@ -3,10 +3,10 @@ package com.solace.spring.stream.binder;
 import com.solace.spring.stream.binder.inbound.JCSMPInboundChannelAdapter;
 import com.solace.spring.stream.binder.inbound.JCSMPMessageSource;
 import com.solace.spring.stream.binder.outbound.JCSMPOutboundMessageHandler;
+import com.solace.spring.stream.binder.properties.SolaceBinderConfigurationProperties;
 import com.solace.spring.stream.binder.util.JCSMPSessionProducerManager;
 import com.solace.spring.stream.binder.util.SolaceProvisioningUtil;
 import com.solacesystems.jcsmp.EndpointProperties;
-import com.solacesystems.jcsmp.JCSMPFactory;
 import com.solacesystems.jcsmp.JCSMPSession;
 import com.solacesystems.jcsmp.Queue;
 import org.springframework.beans.factory.DisposableBean;
@@ -21,7 +21,6 @@ import com.solace.spring.stream.binder.provisioning.SolaceQueueProvisioner;
 import org.springframework.cloud.stream.provisioning.ConsumerDestination;
 import org.springframework.cloud.stream.provisioning.ProducerDestination;
 import org.springframework.integration.core.MessageProducer;
-import org.springframework.integration.support.ErrorMessageStrategy;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
 
@@ -38,6 +37,7 @@ public class SolaceMessageChannelBinder
 	private JCSMPSession jcsmpSession;
 	private SolaceExtendedBindingProperties extendedBindingProperties = new SolaceExtendedBindingProperties();
 	private JCSMPSessionProducerManager sessionProducerManager;
+	private SolaceBinderConfigurationProperties binderConfigurationProperties;
 
 	public SolaceMessageChannelBinder(JCSMPSession jcsmpSession, SolaceQueueProvisioner solaceQueueProvisioner) {
 		super(new String[0], solaceQueueProvisioner);
@@ -54,7 +54,14 @@ public class SolaceMessageChannelBinder
 	protected MessageHandler createProducerMessageHandler(ProducerDestination destination,
 														  ExtendedProducerProperties<SolaceProducerProperties> producerProperties,
 														  MessageChannel errorChannel) {
-		return new JCSMPOutboundMessageHandler(destination, jcsmpSession, errorChannel, sessionProducerManager);
+		return new JCSMPOutboundMessageHandler(
+				destination,
+				jcsmpSession,
+				errorChannel,
+				sessionProducerManager,
+				binderConfigurationProperties.isDmqEnabled() && producerProperties.getExtension().isDmqEligible(),
+				producerProperties
+		);
 	}
 
 	@Override
@@ -121,6 +128,14 @@ public class SolaceMessageChannelBinder
 
 	public void setExtendedBindingProperties(SolaceExtendedBindingProperties extendedBindingProperties) {
 		this.extendedBindingProperties = extendedBindingProperties;
+	}
+
+	public SolaceBinderConfigurationProperties getBinderConfigurationProperties() {
+		return binderConfigurationProperties;
+	}
+
+	public void setBinderConfigurationProperties(SolaceBinderConfigurationProperties binderConfigurationProperties) {
+		this.binderConfigurationProperties = binderConfigurationProperties;
 	}
 
 	/**

@@ -6,46 +6,46 @@ import org.springframework.cloud.stream.binder.ExtendedBindingProperties;
 import java.util.HashMap;
 import java.util.Map;
 
-@ConfigurationProperties("spring.cloud.stream.solace") //TODO Are we allowed to put this here?
+@ConfigurationProperties("spring.cloud.stream.solace")
 public class SolaceExtendedBindingProperties implements ExtendedBindingProperties<SolaceConsumerProperties,SolaceProducerProperties> {
 
-	private Map<String,SolaceBindingProperties> channelBindingProperties = new HashMap<>();
+	private Map<String,SolaceBindingProperties> bindings = new HashMap<>();
 
 	@Override
 	public synchronized SolaceConsumerProperties getExtendedConsumerProperties(String channelName) {
-		if (channelBindingProperties.containsKey(channelName)) {
-			if (channelBindingProperties.get(channelName).getConsumerProperties() == null) {
-				channelBindingProperties.get(channelName).setConsumerProperties(new SolaceConsumerProperties());
+		if (bindings.containsKey(channelName)) {
+			if (bindings.get(channelName).getConsumer() == null) {
+				bindings.get(channelName).setConsumer(new SolaceConsumerProperties());
 			}
 		} else {
 			SolaceBindingProperties bindingProperties = new SolaceBindingProperties();
-			bindingProperties.setConsumerProperties(new SolaceConsumerProperties());
-			channelBindingProperties.put(channelName, bindingProperties);
+			bindingProperties.setConsumer(new SolaceConsumerProperties());
+			bindings.put(channelName, bindingProperties);
 		}
 
-		return channelBindingProperties.get(channelName).getConsumerProperties();
+		return bindings.get(channelName).getConsumer();
 	}
 
 	@Override
 	public synchronized SolaceProducerProperties getExtendedProducerProperties(String channelName) {
-		if (channelBindingProperties.containsKey(channelName)) {
-			if (channelBindingProperties.get(channelName).getProducerProperties() == null) {
-				channelBindingProperties.get(channelName).setProducerProperties(new SolaceProducerProperties());
+		if (bindings.containsKey(channelName)) {
+			if (bindings.get(channelName).getProducer() == null) {
+				bindings.get(channelName).setProducer(new SolaceProducerProperties());
 			}
 		} else {
 			SolaceBindingProperties bindingProperties = new SolaceBindingProperties();
-			bindingProperties.setProducerProperties(new SolaceProducerProperties());
-			channelBindingProperties.put(channelName, bindingProperties);
+			bindingProperties.setProducer(new SolaceProducerProperties());
+			bindings.put(channelName, bindingProperties);
 		}
 
-		return channelBindingProperties.get(channelName).getProducerProperties();
+		return bindings.get(channelName).getProducer();
 	}
 
-	public Map<String, SolaceBindingProperties> getChannelBindingProperties() {
-		return channelBindingProperties;
+	public Map<String, SolaceBindingProperties> getBindings() {
+		return bindings;
 	}
 
-	public void setChannelBindingProperties(Map<String, SolaceBindingProperties> channelBindingProperties) {
-		this.channelBindingProperties = channelBindingProperties;
+	public void setBindings(Map<String, SolaceBindingProperties> bindings) {
+		this.bindings = bindings;
 	}
 }

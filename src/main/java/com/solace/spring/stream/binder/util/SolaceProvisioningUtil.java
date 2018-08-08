@@ -1,5 +1,6 @@
 package com.solace.spring.stream.binder.util;
 
+import com.solace.spring.stream.binder.properties.SolaceBinderConfigurationProperties;
 import com.solace.spring.stream.binder.properties.SolaceCommonProperties;
 import com.solace.spring.stream.binder.properties.SolaceConsumerProperties;
 import com.solace.spring.stream.binder.properties.SolaceProducerProperties;
@@ -20,7 +21,19 @@ public class SolaceProvisioningUtil {
 		endpointProperties.setMaxMsgSize(properties.getQueueMaxMsgSize());
 		endpointProperties.setPermission(properties.getQueuePermission());
 		endpointProperties.setQuota(properties.getQueueQuota());
-		endpointProperties.setRespectsMsgTTL(properties.getRespectsMsgTTL());
+		endpointProperties.setRespectsMsgTTL(properties.getQueueRespectsMsgTTL());
+		return endpointProperties;
+	}
+
+	public static EndpointProperties getDMQEndpointProperties(SolaceBinderConfigurationProperties properties) {
+		EndpointProperties endpointProperties = new EndpointProperties();
+		endpointProperties.setAccessType(properties.getDmqAccessType());
+		endpointProperties.setDiscardBehavior(properties.getDmqDiscardBehaviour());
+		endpointProperties.setMaxMsgRedelivery(properties.getDmqMaxMsgRedelivery());
+		endpointProperties.setMaxMsgSize(properties.getDmqMaxMsgSize());
+		endpointProperties.setPermission(properties.getDmqPermission());
+		endpointProperties.setQuota(properties.getDmqQuota());
+		endpointProperties.setRespectsMsgTTL(properties.getDmqRespectsMsgTTL());
 		return endpointProperties;
 	}
 

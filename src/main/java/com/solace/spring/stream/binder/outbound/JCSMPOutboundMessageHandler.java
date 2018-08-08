@@ -1,5 +1,6 @@
 package com.solace.spring.stream.binder.outbound;
 
+import com.solace.spring.stream.binder.properties.SolaceProducerProperties;
 import com.solace.spring.stream.binder.util.JCSMPSessionProducerManager;
 import com.solace.spring.stream.binder.util.XMLMessageMapper;
 import com.solacesystems.jcsmp.DeliveryMode;
@@ -11,6 +12,7 @@ import com.solacesystems.jcsmp.XMLMessage;
 import com.solacesystems.jcsmp.XMLMessageProducer;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.cloud.stream.binder.ExtendedProducerProperties;
 import org.springframework.cloud.stream.provisioning.ProducerDestination;
 import org.springframework.context.Lifecycle;
 import org.springframework.messaging.Message;
@@ -26,18 +28,26 @@ public class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
 	private final JCSMPSession jcsmpSession;
 	private MessageChannel errorChannel;
 	private JCSMPSessionProducerManager producerManager;
+	private boolean isMessagesDmqEligible;
+	private Long messageTimeToLive;
 	private XMLMessageProducer producer;
 	private final XMLMessageMapper xmlMessageMapper = new XMLMessageMapper();
 	private boolean isRunning = false;
 
 	private static final Log logger = LogFactory.getLog(JCSMPOutboundMessageHandler.class);
 
-	public JCSMPOutboundMessageHandler(ProducerDestination destination, JCSMPSession jcsmpSession, MessageChannel errorChannel,
-								JCSMPSessionProducerManager producerManager) {
+	public JCSMPOutboundMessageHandler(ProducerDestination destination,
+									   JCSMPSession jcsmpSession,
+									   MessageChannel errorChannel,
+									   JCSMPSessionProducerManager producerManager,
+									   boolean isMessagesDmqEligible,
+									   ExtendedProducerProperties<SolaceProducerProperties> producerProperties) {
 		this.topic = JCSMPFactory.onlyInstance().createTopic(destination.getName());
 		this.jcsmpSession = jcsmpSession;
 		this.errorChannel = errorChannel;
 		this.producerManager = producerManager;
+		this.isMessagesDmqEligible = isMessagesDmqEligible;
+		this.messageTimeToLive = producerProperties.getExtension().getMsgTimeToLive();
 	}
 
 	@Override
@@ -49,6 +59,8 @@ public class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
 
 		XMLMessage xmlMessage = xmlMessageMapper.map(message);
 		xmlMessage.setDeliveryMode(DeliveryMode.PERSISTENT);
+		xmlMessage.setDMQEligible(isMessagesDmqEligible);
+		if (messageTimeToLive != null) xmlMessage.setTimeToLive(messageTimeToLive);
 
 		try {
 			producer.send(xmlMessage, topic);

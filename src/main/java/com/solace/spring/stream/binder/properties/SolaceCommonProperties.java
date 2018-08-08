@@ -3,13 +3,16 @@ package com.solace.spring.stream.binder.properties;
 import com.solacesystems.jcsmp.EndpointProperties;
 
 public class SolaceCommonProperties {
-	private String prefix = "";
+	private String prefix = ""; // Naming prefix for all topics and queues
+
+	// Queue Properties -------
+	private int queuePermission = EndpointProperties.PERMISSION_CONSUME;
 	private Integer queueDiscardBehaviour = null;
 	private Integer queueMaxMsgRedelivery = null;
 	private Integer queueMaxMsgSize = null;
-	private int queuePermission = EndpointProperties.PERMISSION_CONSUME;
 	private Integer queueQuota = null;
-	private Boolean isRespectsMsgTTL = null;
+	private Boolean queueRespectsMsgTTL = null;
+	// ------------------------
 
 	public String getPrefix() {
 		return prefix;
@@ -17,6 +20,14 @@ public class SolaceCommonProperties {
 
 	public void setPrefix(String prefix) {
 		this.prefix = prefix;
+	}
+
+	public int getQueuePermission() {
+		return queuePermission;
+	}
+
+	public void setQueuePermission(int queuePermission) {
+		this.queuePermission = queuePermission;
 	}
 
 	public Integer getQueueDiscardBehaviour() {
@@ -43,14 +54,6 @@ public class SolaceCommonProperties {
 		this.queueMaxMsgSize = queueMaxMsgSize;
 	}
 
-	public int getQueuePermission() {
-		return queuePermission;
-	}
-
-	public void setQueuePermission(int queuePermission) {
-		this.queuePermission = queuePermission;
-	}
-
 	public Integer getQueueQuota() {
 		return queueQuota;
 	}
@@ -59,11 +62,11 @@ public class SolaceCommonProperties {
 		this.queueQuota = queueQuota;
 	}
 
-	public Boolean getRespectsMsgTTL() {
-		return isRespectsMsgTTL;
+	public Boolean getQueueRespectsMsgTTL() {
+		return queueRespectsMsgTTL;
 	}
 
-	public void setRespectsMsgTTL(Boolean respectsMsgTTL) {
-		isRespectsMsgTTL = respectsMsgTTL;
+	public void setQueueRespectsMsgTTL(Boolean queueRespectsMsgTTL) {
+		this.queueRespectsMsgTTL = queueRespectsMsgTTL;
 	}
 }

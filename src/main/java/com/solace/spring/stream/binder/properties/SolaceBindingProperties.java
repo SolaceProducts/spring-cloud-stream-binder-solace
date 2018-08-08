@@ -2,22 +2,22 @@ package com.solace.spring.stream.binder.properties;
 
 public class SolaceBindingProperties {
 
-	private SolaceConsumerProperties consumerProperties = new SolaceConsumerProperties();
-	private SolaceProducerProperties producerProperties = new SolaceProducerProperties();
+	private SolaceConsumerProperties consumer = new SolaceConsumerProperties();
+	private SolaceProducerProperties producer = new SolaceProducerProperties();
 
-	public SolaceConsumerProperties getConsumerProperties() {
-		return consumerProperties;
+	public SolaceConsumerProperties getConsumer() {
+		return consumer;
 	}
 
-	public void setConsumerProperties(SolaceConsumerProperties consumerProperties) {
-		this.consumerProperties = consumerProperties;
+	public void setConsumer(SolaceConsumerProperties consumer) {
+		this.consumer = consumer;
 	}
 
-	public SolaceProducerProperties getProducerProperties() {
-		return producerProperties;
+	public SolaceProducerProperties getProducer() {
+		return producer;
 	}
 
-	public void setProducerProperties(SolaceProducerProperties producerProperties) {
-		this.producerProperties = producerProperties;
+	public void setProducer(SolaceProducerProperties producer) {
+		this.producer = producer;
 	}
 }
