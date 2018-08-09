@@ -38,16 +38,16 @@ class RetryableInboundXMLMessageListener extends InboundXMLMessageListener imple
 
 	@Override
 	public void onReceive(BytesXMLMessage bytesXMLMessage) {
-		//TODO Any headers?
-
+		final Message<?> message = xmlMessageMapper.map(bytesXMLMessage);
 		retryTemplate.execute((context) -> {
-			final Message<?> message = xmlMessageMapper.map(bytesXMLMessage);
-			Objects.requireNonNull(StaticMessageHeaderAccessor.getDeliveryAttempt(message),
-							"delivery attempt header was not set")
-					.incrementAndGet();
+			incrementDeliveryAttempt(message);
 			messageConsumer.accept(message);
+			ack(message, bytesXMLMessage, false);
 			return null;
-		}, recoveryCallback);
+		}, (context) -> {
+			nack(message, bytesXMLMessage, false);
+			return recoveryCallback.recover(context);
+		});
 	}
 
 	@Override

@@ -5,6 +5,7 @@ import com.solacesystems.jcsmp.JCSMPFactory;
 import com.solacesystems.jcsmp.XMLMessage;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.integration.IntegrationMessageHeaderAccessor;
 import org.springframework.integration.support.DefaultMessageBuilderFactory;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
@@ -22,6 +23,7 @@ public class XMLMessageMapper {
 	private static final Log logger = LogFactory.getLog(XMLMessageMapper.class);
 	private static final Charset DEFAULT_ENCODING = StandardCharsets.UTF_8;
 	private static final String MIME_JAVA_SERIALIZED_OBJECT = "application/x-java-serialized-object";
+	private static final JCSMPAcknowledgementCallbackFactory ackCallbackFactory = new JCSMPAcknowledgementCallbackFactory();
 
 	public XMLMessage map(Message<?> message) {
 		byte[] messageWrapperBytes = SerializationUtils.serialize(createMessageWrapper(message));
@@ -47,9 +49,11 @@ public class XMLMessageMapper {
 			payload = SerializationUtils.deserialize(payloadBytes);
 		}
 
-		return new DefaultMessageBuilderFactory().withPayload(payload != null ? payload : payloadBytes)
+		return new DefaultMessageBuilderFactory()
+				.withPayload(payload != null ? payload : payloadBytes)
 				.copyHeaders(messageWrapper.getHeaders())
-				.setHeaderIfAbsent("deliveryAttempt", new AtomicInteger(0))
+				.setHeader(IntegrationMessageHeaderAccessor.ACKNOWLEDGMENT_CALLBACK, ackCallbackFactory.createCallback(xmlMessage))
+				.setHeaderIfAbsent(IntegrationMessageHeaderAccessor.DELIVERY_ATTEMPT, new AtomicInteger(0))
 				.build();
 	}
 

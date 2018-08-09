@@ -60,7 +60,7 @@ public class JCSMPInboundChannelAdapter extends MessageProducerSupport implement
 		try {
 			final ConsumerFlowProperties flowProperties = new ConsumerFlowProperties();
 			flowProperties.setEndpoint(queue);
-			flowProperties.setAckMode(JCSMPProperties.SUPPORTED_MESSAGE_ACK_AUTO);
+			flowProperties.setAckMode(JCSMPProperties.SUPPORTED_MESSAGE_ACK_CLIENT);
 			consumerFlowReceiver = jcsmpSession.createFlow(listener, flowProperties, endpointProperties);
 			consumerFlowReceiver.start();
 		} catch (JCSMPException e) {
