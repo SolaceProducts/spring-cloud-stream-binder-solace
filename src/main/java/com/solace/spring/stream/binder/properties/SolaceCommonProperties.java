@@ -6,6 +6,7 @@ public class SolaceCommonProperties {
 	private String prefix = ""; // Naming prefix for all topics and queues
 
 	// Queue Properties -------
+	private int queueAccessType = EndpointProperties.ACCESSTYPE_NONEXCLUSIVE;
 	private int queuePermission = EndpointProperties.PERMISSION_CONSUME;
 	private Integer queueDiscardBehaviour = null;
 	private Integer queueMaxMsgRedelivery = null;
@@ -20,6 +21,14 @@ public class SolaceCommonProperties {
 
 	public void setPrefix(String prefix) {
 		this.prefix = prefix;
+	}
+
+	public int getQueueAccessType() {
+		return queueAccessType;
+	}
+
+	public void setQueueAccessType(int queueAccessType) {
+		this.queueAccessType = queueAccessType;
 	}
 
 	public int getQueuePermission() {

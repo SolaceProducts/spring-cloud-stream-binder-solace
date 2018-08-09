@@ -15,7 +15,7 @@ public class SolaceProvisioningUtil {
 
 	public static EndpointProperties getEndpointProperties(SolaceCommonProperties properties) {
 		EndpointProperties endpointProperties = new EndpointProperties();
-		endpointProperties.setAccessType(EndpointProperties.ACCESSTYPE_EXCLUSIVE);
+		endpointProperties.setAccessType(properties.getQueueAccessType());
 		endpointProperties.setDiscardBehavior(properties.getQueueDiscardBehaviour());
 		endpointProperties.setMaxMsgRedelivery(properties.getQueueMaxMsgRedelivery());
 		endpointProperties.setMaxMsgSize(properties.getQueueMaxMsgSize());

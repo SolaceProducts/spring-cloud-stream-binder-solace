@@ -8,7 +8,7 @@ public class SolaceBinderConfigurationProperties {
 
 	// DMQ Properties ---------
 	private boolean dmqEnabled = false; // DMQ Name: #DEAD_MSG_QUEUE
-	private int dmqAccessType = EndpointProperties.ACCESSTYPE_EXCLUSIVE;
+	private int dmqAccessType = EndpointProperties.ACCESSTYPE_NONEXCLUSIVE;
 	private int dmqPermission = EndpointProperties.PERMISSION_CONSUME;
 	private Integer dmqDiscardBehaviour = null;
 	private Integer dmqMaxMsgRedelivery = null;
