@@ -35,7 +35,7 @@ public class JCSMPSessionProducerManager extends SharedResourceManager<XMLMessag
 
 		@Override
 		public void handleError(String messageID, JCSMPException e, long timestamp) {
-			logger.error("Producer received error for msg: " + messageID + " - " + timestamp, e);
+			logger.warn("Producer received error for msg: " + messageID + " - " + timestamp, e);
 		}
 	};
 }

@@ -105,7 +105,7 @@ public class SolaceQueueProvisioner
 				jcsmpSession.provision(queue, endpointProperties, JCSMPSession.FLAG_IGNORE_ALREADY_EXISTS);
 			} catch (JCSMPException e) {
 				String msg = String.format("Failed to provision durable queue %s", name);
-				logger.error(msg, e);
+				logger.warn(msg, e);
 				throw new ProvisioningException(msg, e);
 			}
 		} else {
@@ -114,7 +114,7 @@ public class SolaceQueueProvisioner
 				queue = jcsmpSession.createTemporaryQueue(name);
 			} catch (JCSMPException e) {
 				String msg = String.format("Failed to create temporary queue %s", name);
-				logger.error(msg, e);
+				logger.warn(msg, e);
 				throw new ProvisioningException(msg, e);
 			}
 		}
@@ -130,7 +130,7 @@ public class SolaceQueueProvisioner
 			jcsmpSession.provision(dmq, endpointProperties, JCSMPSession.FLAG_IGNORE_ALREADY_EXISTS);
 		} catch (JCSMPException e) {
 			String msg = String.format("Failed to provision dead message queue %s", DMQ_NAME);
-			logger.error(msg, e);
+			logger.warn(msg, e);
 			throw new ProvisioningException(msg, e);
 		}
 	}
@@ -152,7 +152,7 @@ public class SolaceQueueProvisioner
 			}
 		} catch (JCSMPException e) {
 			String msg = String.format("Failed to add subscription of %s to queue %s", topicName, queue.getName());
-			logger.error(msg, e);
+			logger.warn(msg, e);
 			throw new ProvisioningException(msg, e);
 		}
 	}

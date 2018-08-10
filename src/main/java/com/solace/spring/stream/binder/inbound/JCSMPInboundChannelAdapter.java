@@ -65,7 +65,7 @@ public class JCSMPInboundChannelAdapter extends MessageProducerSupport implement
 			consumerFlowReceiver.start();
 		} catch (JCSMPException e) {
 			String msg = "Failed to get message consumer from session";
-			logger.error(msg, e);
+			logger.warn(msg, e);
 			throw new MessagingException(msg, e);
 		}
 

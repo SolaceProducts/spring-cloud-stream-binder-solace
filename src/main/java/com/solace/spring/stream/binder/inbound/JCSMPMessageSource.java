@@ -47,7 +47,7 @@ public class JCSMPMessageSource extends AbstractMessageSource<Object> implements
 	protected Object doReceive() {
 		if (!isRunning()) {
 			String msg = String.format("Cannot send message, message source %s is not running", id);
-			logger.error(msg);
+			logger.warn(msg);
 			throw new MessagingException(msg);
 		}
 
@@ -62,7 +62,7 @@ public class JCSMPMessageSource extends AbstractMessageSource<Object> implements
 				return null;
 			} else {
 				String msg = String.format("Unable to consume message from queue %s", queueName);
-				logger.error(msg, e);
+				logger.warn(msg, e);
 				throw new MessagingException(msg, e);
 			}
 		}
@@ -92,7 +92,7 @@ public class JCSMPMessageSource extends AbstractMessageSource<Object> implements
 			consumerFlowReceiver.start();
 		} catch (JCSMPException e) {
 			String msg = String.format("Unable to get a message consumer for session %s", jcsmpSession.getSessionName());
-			logger.error(msg, e);
+			logger.warn(msg, e);
 			throw new RuntimeException(msg, e);
 		}
 

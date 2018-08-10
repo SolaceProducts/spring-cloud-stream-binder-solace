@@ -54,7 +54,7 @@ class InboundXMLMessageListener implements XMLMessageListener {
 
 	@Override
 	public void onException(JCSMPException e) { //TODO Do we need anything here?
-//		logger.error("An unrecoverable error was received while listening for messages", e);
+//		logger.warn("An unrecoverable error was received while listening for messages", e);
 	}
 
 	void incrementDeliveryAttempt(Message<?> message) {

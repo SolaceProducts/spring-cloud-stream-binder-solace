@@ -82,7 +82,7 @@ public class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
 			producer = producerManager.get(id);
 		} catch (Exception e) {
 			String msg = String.format("Unable to get a message producer for session %s", jcsmpSession.getSessionName());
-			logger.error(msg, e);
+			logger.warn(msg, e);
 			throw new RuntimeException(msg, e);
 		}
 
@@ -103,7 +103,13 @@ public class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
 
 	private MessagingException handleMessagingException(String msg, Message<?> message, Exception e)
 			throws MessagingException {
-		logger.error(msg);
+		if (e != null) {
+			logger.warn(msg, e);
+		}
+		else {
+			logger.warn(msg);
+		}
+
 		if (errorChannel != null) errorChannel.send(message);
 		return e != null ? new MessagingException(msg, e) : new MessagingException(msg);
 	}
