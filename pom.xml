@@ -4,7 +4,7 @@
   <groupId>com.solace.spring.stream</groupId>
   <artifactId>spring-cloud-stream-binder-solace</artifactId>
   <packaging>jar</packaging>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>0.0.2</version>
   <name>spring-cloud-stream-binder-solace</name>
   <description>A Spring Cloud Stream Binder implementation using the Solace Java API (JCSMP)</description>
 
@@ -30,7 +30,7 @@
     <url>https://github.com/SolaceDev/spring-cloud-stream-binder-solace.git</url>
     <connection>scm:git:git://github.com/SolaceDev/spring-cloud-stream-binder-solace.git</connection>
     <developerConnection>scm:git:git@github.com:SolaceDev/spring-cloud-stream-binder-solace.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>0.0.2</tag>
   </scm>
 
   <properties>
