@@ -1,2 +1,2 @@
 solace:\
-com.solace.spring.stream.binder.config.SolaceMessageChannelBinderConfiguration
+com.solace.spring.stream.binder.config.SolaceServiceAutoConfiguration
