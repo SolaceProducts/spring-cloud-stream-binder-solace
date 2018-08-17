@@ -100,6 +100,12 @@ public class JCSMPInboundChannelAdapter extends MessageProducerSupport implement
 		this.recoveryCallback = recoveryCallback;
 	}
 
+	@Override
+	protected AttributeAccessor getErrorMessageAttributes(org.springframework.messaging.Message<?> message) {
+		AttributeAccessor attributes = attributesHolder.get();
+		return attributes == null ? super.getErrorMessageAttributes(message) : attributes;
+	}
+
 	private XMLMessageListener buildListener() {
 		XMLMessageListener listener;
 		if (retryTemplate != null) {
@@ -121,7 +127,9 @@ public class JCSMPInboundChannelAdapter extends MessageProducerSupport implement
 			listener = new InboundXMLMessageListener(
 					consumerDestination,
 					this::sendMessage,
-					(exception) -> sendErrorMessageIfNecessary(null, exception)
+					(exception) -> sendErrorMessageIfNecessary(null, exception),
+					attributesHolder,
+					this.getErrorChannel() != null
 			);
 		}
 		return listener;

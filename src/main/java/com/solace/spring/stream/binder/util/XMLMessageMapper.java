@@ -1,15 +1,18 @@
 package com.solace.spring.stream.binder.util;
 
+import com.solace.spring.stream.binder.properties.SolaceConsumerProperties;
+import com.solace.spring.stream.binder.properties.SolaceProducerProperties;
 import com.solacesystems.jcsmp.BytesXMLMessage;
+import com.solacesystems.jcsmp.DeliveryMode;
 import com.solacesystems.jcsmp.JCSMPFactory;
 import com.solacesystems.jcsmp.XMLMessage;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.integration.IntegrationMessageHeaderAccessor;
 import org.springframework.integration.support.DefaultMessageBuilderFactory;
+import org.springframework.integration.support.MessageBuilder;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
-import org.springframework.messaging.MessagingException;
 import org.springframework.util.MimeTypeUtils;
 import org.springframework.util.SerializationUtils;
 import org.springframework.util.StringUtils;
@@ -25,15 +28,37 @@ public class XMLMessageMapper {
 	private static final String MIME_JAVA_SERIALIZED_OBJECT = "application/x-java-serialized-object";
 	private static final JCSMPAcknowledgementCallbackFactory ackCallbackFactory = new JCSMPAcknowledgementCallbackFactory();
 
-	public XMLMessage map(Message<?> message) {
+	public XMLMessage map(Message<?> message, SolaceProducerProperties producerProperties) {
+		XMLMessage xmlMessage = map(message);
+		xmlMessage.setDMQEligible(producerProperties.isMsgDmqEligible());
+		if (producerProperties.getMsgTtl() != null) {
+			xmlMessage.setTimeToLive(producerProperties.getMsgTtl());
+		}
+		return xmlMessage;
+	}
+
+	public XMLMessage map(Message<?> message, SolaceConsumerProperties consumerProperties) {
+		XMLMessage xmlMessage = map(message);
+		if (consumerProperties.getRepublishedMsgTtl() != null) {
+			xmlMessage.setTimeToLive(consumerProperties.getRepublishedMsgTtl());
+		}
+		return xmlMessage;
+	}
+
+	private XMLMessage map(Message<?> message) {
 		byte[] messageWrapperBytes = SerializationUtils.serialize(createMessageWrapper(message));
 		BytesXMLMessage xmlMessage = JCSMPFactory.onlyInstance().createMessage(BytesXMLMessage.class);
 		xmlMessage.writeAttachment(messageWrapperBytes);
 		xmlMessage.setHTTPContentType(MIME_JAVA_SERIALIZED_OBJECT);
+		xmlMessage.setDeliveryMode(DeliveryMode.PERSISTENT);
 		return xmlMessage;
 	}
 
-	public Message<?> map(XMLMessage xmlMessage) throws MessagingException {
+	public Message<?> map(XMLMessage xmlMessage) throws SolaceMessageConversionException {
+		return map(xmlMessage, false);
+	}
+
+	public Message<?> map(XMLMessage xmlMessage, boolean setRawMessageHeader) throws SolaceMessageConversionException {
 		MessageWrapper messageWrapper = extractMessageWrapper(xmlMessage);
 
 		Object payload = null;
@@ -49,12 +74,15 @@ public class XMLMessageMapper {
 			payload = SerializationUtils.deserialize(payloadBytes);
 		}
 
-		return new DefaultMessageBuilderFactory()
+		MessageBuilder<?> builder =  new DefaultMessageBuilderFactory()
 				.withPayload(payload != null ? payload : payloadBytes)
 				.copyHeaders(messageWrapper.getHeaders())
 				.setHeader(IntegrationMessageHeaderAccessor.ACKNOWLEDGMENT_CALLBACK, ackCallbackFactory.createCallback(xmlMessage))
-				.setHeaderIfAbsent(IntegrationMessageHeaderAccessor.DELIVERY_ATTEMPT, new AtomicInteger(0))
-				.build();
+				.setHeaderIfAbsent(IntegrationMessageHeaderAccessor.DELIVERY_ATTEMPT, new AtomicInteger(0));
+
+		if (setRawMessageHeader) builder.setHeader(SolaceMessageHeaderErrorMessageStrategy.SOLACE_RAW_MESSAGE, xmlMessage);
+
+		return builder.build();
 	}
 
 	private MessageWrapper createMessageWrapper(Message<?> message) {
@@ -74,7 +102,7 @@ public class XMLMessageMapper {
 			mimeType = MIME_JAVA_SERIALIZED_OBJECT;
 			payloadBytes = SerializationUtils.serialize(payload);
 		} else {
-			throw new IllegalArgumentException(String.format(
+			throw new SolaceMessageConversionException(String.format(
 					"Invalid payload received. Expected byte[], String, or Serializable. Received: %s",
 					payload.getClass().getName()));
 		}
@@ -84,12 +112,12 @@ public class XMLMessageMapper {
 		return messageWrapper;
 	}
 
-	private MessageWrapper extractMessageWrapper(XMLMessage xmlMessage) {
+	private MessageWrapper extractMessageWrapper(XMLMessage xmlMessage) throws SolaceMessageConversionException {
 		String messageId = xmlMessage.getMessageId();
 
 		String contentType = xmlMessage.getHTTPContentType();
 		if (!contentType.equalsIgnoreCase(MIME_JAVA_SERIALIZED_OBJECT)) {
-			throw new IllegalArgumentException(String.format(
+			throw new SolaceMessageConversionException(String.format(
 					"Received Solace message %s with an invalid contentType header. Expected %s. Received %s",
 					messageId, MIME_JAVA_SERIALIZED_OBJECT, contentType));
 		}
@@ -98,11 +126,11 @@ public class XMLMessageMapper {
 		Object serializedMessage = SerializationUtils.deserialize(attachment);
 
 		if (serializedMessage == null) {
-			throw new MessagingException(String.format("Received Solace message %s with an empty attachment.",
+			throw new SolaceMessageConversionException(String.format("Received Solace message %s with an empty attachment.",
 					messageId));
 		}
 		else if (!(serializedMessage instanceof MessageWrapper)) {
-			throw new IllegalArgumentException(String.format(
+			throw new SolaceMessageConversionException(String.format(
 					"Received Solace Message %s with an invalid attachment. Expected %s. Received %s",
 					messageId, MessageWrapper.class.getName(), serializedMessage.getClass().getName()));
 		}

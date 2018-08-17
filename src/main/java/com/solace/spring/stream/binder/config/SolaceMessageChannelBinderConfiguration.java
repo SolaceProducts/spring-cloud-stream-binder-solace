@@ -1,6 +1,5 @@
 package com.solace.spring.stream.binder.config;
 
-import com.solace.spring.stream.binder.properties.SolaceBinderConfigurationProperties;
 import com.solacesystems.jcsmp.JCSMPException;
 import com.solacesystems.jcsmp.JCSMPSession;
 import com.solacesystems.jcsmp.SpringJCSMPFactory;
@@ -15,16 +14,13 @@ import org.springframework.context.annotation.Configuration;
 import javax.annotation.PostConstruct;
 
 @Configuration
-@EnableConfigurationProperties({ SolaceBinderConfigurationProperties.class, SolaceExtendedBindingProperties.class })
+@EnableConfigurationProperties({ SolaceExtendedBindingProperties.class })
 public class SolaceMessageChannelBinderConfiguration {
 	@Autowired
 	private SpringJCSMPFactory springJCSMPFactory;
 
 	@Autowired
 	private SolaceExtendedBindingProperties solaceExtendedBindingProperties;
-
-	@Autowired
-	private SolaceBinderConfigurationProperties solaceBinderConfigurationProperties;
 
 	private JCSMPSession jcsmpSession;
 
@@ -38,12 +34,11 @@ public class SolaceMessageChannelBinderConfiguration {
 	SolaceMessageChannelBinder solaceMessageChannelBinder() throws Exception {
 		SolaceMessageChannelBinder binder = new SolaceMessageChannelBinder(jcsmpSession, provisioningProvider());
 		binder.setExtendedBindingProperties(solaceExtendedBindingProperties);
-		binder.setBinderConfigurationProperties(solaceBinderConfigurationProperties);
 		return binder;
 	}
 
 	@Bean
 	SolaceQueueProvisioner provisioningProvider() {
-		return new SolaceQueueProvisioner(jcsmpSession, solaceBinderConfigurationProperties);
+		return new SolaceQueueProvisioner(jcsmpSession);
 	}
 }

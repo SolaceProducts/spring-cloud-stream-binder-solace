@@ -5,6 +5,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.cloud.stream.provisioning.ConsumerDestination;
 import org.springframework.core.AttributeAccessor;
+import org.springframework.integration.support.AckUtils;
 import org.springframework.integration.support.StaticMessageHeaderAccessor;
 import org.springframework.messaging.Message;
 import org.springframework.retry.RecoveryCallback;
@@ -13,12 +14,10 @@ import org.springframework.retry.RetryContext;
 import org.springframework.retry.RetryListener;
 import org.springframework.retry.support.RetryTemplate;
 
-import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 class RetryableInboundXMLMessageListener extends InboundXMLMessageListener implements RetryListener {
-	private final ThreadLocal<AttributeAccessor> attributesHolder;
 	private final RetryTemplate retryTemplate;
 	private final RecoveryCallback<?> recoveryCallback;
 
@@ -30,23 +29,22 @@ class RetryableInboundXMLMessageListener extends InboundXMLMessageListener imple
 									   RetryTemplate retryTemplate,
 									   RecoveryCallback<?> recoveryCallback,
 									   ThreadLocal<AttributeAccessor> attributesHolder) {
-		super(consumerDestination, messageConsumer, errorHandlerFunction);
-		this.attributesHolder = attributesHolder;
+		super(consumerDestination, messageConsumer, errorHandlerFunction, attributesHolder, false, true);
 		this.retryTemplate = retryTemplate;
 		this.recoveryCallback = recoveryCallback;
 	}
 
 	@Override
-	public void onReceive(BytesXMLMessage bytesXMLMessage) {
-		final Message<?> message = xmlMessageMapper.map(bytesXMLMessage);
+	void handleMessage(final Message<?> message, final BytesXMLMessage bytesXMLMessage) {
 		retryTemplate.execute((context) -> {
-			incrementDeliveryAttempt(message);
-			messageConsumer.accept(message);
-			ack(message, bytesXMLMessage, false);
+			sendToConsumer(message, bytesXMLMessage);
+			AckUtils.autoAck(StaticMessageHeaderAccessor.getAcknowledgmentCallback(message));
 			return null;
 		}, (context) -> {
-			nack(message, bytesXMLMessage, false);
-			return recoveryCallback.recover(context);
+			setAttributesIfNecessary(bytesXMLMessage, null);
+			Object toReturn = recoveryCallback.recover(context);
+			AckUtils.autoNack(StaticMessageHeaderAccessor.getAcknowledgmentCallback(message));
+			return toReturn;
 		});
 	}
 

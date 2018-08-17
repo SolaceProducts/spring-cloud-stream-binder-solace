@@ -90,6 +90,7 @@ public class SolaceServiceAutoConfiguration {
 			@EnableConfigurationProperties(SolaceJavaProperties.class)
 			protected static class OverrideCloudConnectors {
 				/* TODO Make this class a dummy implementation of SolaceJavaAutoConfigurationBase
+				 * The result would be the same, but without the need to maintain the same code in two places...
 				 * Task will only be achievable once SolaceJavaAutoConfigurationBase becomes public.
 				 */
 				@Bean

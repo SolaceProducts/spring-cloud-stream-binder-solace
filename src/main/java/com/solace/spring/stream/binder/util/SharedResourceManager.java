@@ -21,7 +21,7 @@ abstract class SharedResourceManager<T> {
 	abstract T create() throws Exception;
 	abstract void close();
 
-	public T get(String callerID) throws Exception {
+	public T get(String key) throws Exception {
 		synchronized (lock) {
 			if (registeredIds.isEmpty()) {
 				logger.info(String.format("No %s exists, a new one will be created", type));
@@ -30,22 +30,24 @@ abstract class SharedResourceManager<T> {
 				logger.info(String.format("A message %s already exists, reusing it", type));
 			}
 
-			registeredIds.add(callerID);
+			registeredIds.add(key);
 		}
 
 		return sharedResource;
 	}
 
-	public void close(String callerId) {
+	public void release(String key) {
 		synchronized (lock) {
-			if (registeredIds.contains(callerId) && registeredIds.size() <= 1) {
-				logger.info(String.format("%s is the last user, closing %s...", callerId, type));
+			if (!registeredIds.contains(key)) return;
+
+			if (registeredIds.size() <= 1) {
+				logger.info(String.format("%s is the last user, closing %s...", key, type));
 				close();
 				sharedResource = null;
 			} else {
-				logger.info(String.format("%s is not the last user, persisting %s...", callerId, type));
+				logger.info(String.format("%s is not the last user, persisting %s...", key, type));
 			}
-			registeredIds.remove(callerId);
+			registeredIds.remove(key);
 		}
 	}
 }

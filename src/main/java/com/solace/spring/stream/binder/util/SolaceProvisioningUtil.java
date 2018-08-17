@@ -1,6 +1,5 @@
 package com.solace.spring.stream.binder.util;
 
-import com.solace.spring.stream.binder.properties.SolaceBinderConfigurationProperties;
 import com.solace.spring.stream.binder.properties.SolaceCommonProperties;
 import com.solace.spring.stream.binder.properties.SolaceConsumerProperties;
 import com.solace.spring.stream.binder.properties.SolaceProducerProperties;
@@ -10,6 +9,7 @@ import org.springframework.util.StringUtils;
 
 public class SolaceProvisioningUtil {
 	private static final String QUEUE_NAME_DELIM = ".";
+	private static final String DMQ_POSTFIX = "dmq";
 
 	private SolaceProvisioningUtil() {}
 
@@ -21,11 +21,11 @@ public class SolaceProvisioningUtil {
 		endpointProperties.setMaxMsgSize(properties.getQueueMaxMsgSize());
 		endpointProperties.setPermission(properties.getQueuePermission());
 		endpointProperties.setQuota(properties.getQueueQuota());
-		endpointProperties.setRespectsMsgTTL(properties.getQueueRespectsMsgTTL());
+		endpointProperties.setRespectsMsgTTL(properties.getQueueRespectsMsgTtl());
 		return endpointProperties;
 	}
 
-	public static EndpointProperties getDMQEndpointProperties(SolaceBinderConfigurationProperties properties) {
+	public static EndpointProperties getDMQEndpointProperties(SolaceConsumerProperties properties) {
 		EndpointProperties endpointProperties = new EndpointProperties();
 		endpointProperties.setAccessType(properties.getDmqAccessType());
 		endpointProperties.setDiscardBehavior(properties.getDmqDiscardBehaviour());
@@ -33,7 +33,7 @@ public class SolaceProvisioningUtil {
 		endpointProperties.setMaxMsgSize(properties.getDmqMaxMsgSize());
 		endpointProperties.setPermission(properties.getDmqPermission());
 		endpointProperties.setQuota(properties.getDmqQuota());
-		endpointProperties.setRespectsMsgTTL(properties.getDmqRespectsMsgTTL());
+		endpointProperties.setRespectsMsgTTL(properties.getDmqRespectsMsgTtl());
 		return endpointProperties;
 	}
 
@@ -72,5 +72,9 @@ public class SolaceProvisioningUtil {
 		}
 
 		return properties.getPrefix() + queueName;
+	}
+
+	public static String getDMQName(String queueName) {
+		return queueName + QUEUE_NAME_DELIM + DMQ_POSTFIX;
 	}
 }

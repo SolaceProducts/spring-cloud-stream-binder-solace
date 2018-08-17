@@ -1,6 +1,5 @@
 package com.solace.spring.stream.binder.provisioning;
 
-import com.solace.spring.stream.binder.properties.SolaceBinderConfigurationProperties;
 import com.solace.spring.stream.binder.util.SolaceProvisioningUtil;
 import com.solace.spring.stream.binder.properties.SolaceCommonProperties;
 import com.solacesystems.jcsmp.EndpointProperties;
@@ -30,14 +29,11 @@ public class SolaceQueueProvisioner
 
 	private JCSMPSession jcsmpSession;
 	private Map<String,String> queueToTopicBindings = new HashMap<>();
-	private SolaceBinderConfigurationProperties binderConfigurationProperties;
 
 	private static final Log logger = LogFactory.getLog(SolaceQueueProvisioner.class);
-	private static final String DMQ_NAME = "#DEAD_MSG_QUEUE";
 
-	public SolaceQueueProvisioner(JCSMPSession jcsmpSession, SolaceBinderConfigurationProperties binderConfigurationProperties) {
+	public SolaceQueueProvisioner(JCSMPSession jcsmpSession) {
 		this.jcsmpSession = jcsmpSession;
-		this.binderConfigurationProperties = binderConfigurationProperties;
 	}
 
 	@Override
@@ -59,10 +55,6 @@ public class SolaceQueueProvisioner
 
 			addSubscriptionToQueue(queue, topicName);
 			queueToTopicBindings.put(queue.getName(), topicName);
-		}
-
-		if (binderConfigurationProperties.isDmqEnabled()) {
-			provisionDMQ(binderConfigurationProperties);
 		}
 
 		return new SolaceProducerDestination(topicName);
@@ -89,8 +81,8 @@ public class SolaceQueueProvisioner
 		Queue queue = provisionQueue(queueName, isDurableQueue, properties.getExtension());
 		queueToTopicBindings.put(queue.getName(), topicName);
 
-		if (binderConfigurationProperties.isDmqEnabled()) {
-			provisionDMQ(binderConfigurationProperties);
+		if (properties.getExtension().isAutoBindDmq()) {
+			provisionDMQ(queueName, properties.getExtension());
 		}
 
 		return new SolaceConsumerDestination(queue.getName());
@@ -122,14 +114,15 @@ public class SolaceQueueProvisioner
 		return queue;
 	}
 
-	private void provisionDMQ(SolaceBinderConfigurationProperties properties) {
-		logger.info(String.format("Provisioning DMQ %s", DMQ_NAME));
+	private void provisionDMQ(String queueName, SolaceConsumerProperties properties) {
+		String dmqName = SolaceProvisioningUtil.getDMQName(queueName);
+		logger.info(String.format("Provisioning DMQ %s", dmqName));
 		try {
 			EndpointProperties endpointProperties = SolaceProvisioningUtil.getDMQEndpointProperties(properties);
-			Queue dmq = JCSMPFactory.onlyInstance().createQueue(DMQ_NAME);
+			Queue dmq = JCSMPFactory.onlyInstance().createQueue(dmqName);
 			jcsmpSession.provision(dmq, endpointProperties, JCSMPSession.FLAG_IGNORE_ALREADY_EXISTS);
 		} catch (JCSMPException e) {
-			String msg = String.format("Failed to provision dead message queue %s", DMQ_NAME);
+			String msg = String.format("Failed to provision dead message queue %s", dmqName);
 			logger.warn(msg, e);
 			throw new ProvisioningException(msg, e);
 		}

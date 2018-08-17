@@ -12,7 +12,7 @@ public class SolaceCommonProperties {
 	private Integer queueMaxMsgRedelivery = null;
 	private Integer queueMaxMsgSize = null;
 	private Integer queueQuota = null;
-	private Boolean queueRespectsMsgTTL = null;
+	private Boolean queueRespectsMsgTtl = null;
 	// ------------------------
 
 	public String getPrefix() {
@@ -71,11 +71,11 @@ public class SolaceCommonProperties {
 		this.queueQuota = queueQuota;
 	}
 
-	public Boolean getQueueRespectsMsgTTL() {
-		return queueRespectsMsgTTL;
+	public Boolean getQueueRespectsMsgTtl() {
+		return queueRespectsMsgTtl;
 	}
 
-	public void setQueueRespectsMsgTTL(Boolean queueRespectsMsgTTL) {
-		this.queueRespectsMsgTTL = queueRespectsMsgTTL;
+	public void setQueueRespectsMsgTtl(Boolean queueRespectsMsgTtl) {
+		this.queueRespectsMsgTtl = queueRespectsMsgTtl;
 	}
 }

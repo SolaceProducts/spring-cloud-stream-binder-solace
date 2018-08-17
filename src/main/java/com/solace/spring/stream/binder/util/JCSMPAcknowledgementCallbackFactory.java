@@ -27,9 +27,10 @@ class JCSMPAcknowledgementCallbackFactory implements AcknowledgmentCallbackFacto
 					xmlMessage.ackMessage();
 					break;
 				case REJECT:
-					break; // No ack...
+					xmlMessage.ackMessage();
+					break;
 				case REQUEUE:
-					throw new UnsupportedOperationException("Requeue acknowledgement is not supported in the Solace binder");
+					xmlMessage.ackMessage();
 			}
 
 			acknowledged = true;

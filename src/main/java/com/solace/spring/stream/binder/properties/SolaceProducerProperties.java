@@ -1,22 +1,22 @@
 package com.solace.spring.stream.binder.properties;
 
 public class SolaceProducerProperties extends SolaceCommonProperties {
-	private Long msgTimeToLive;
-	private boolean dmqEligible = false;
+	private Long msgTtl;
+	private boolean msgDmqEligible = false;
 
-	public Long getMsgTimeToLive() {
-		return msgTimeToLive;
+	public Long getMsgTtl() {
+		return msgTtl;
 	}
 
-	public void setMsgTimeToLive(Long msgTimeToLive) {
-		this.msgTimeToLive = msgTimeToLive;
+	public void setMsgTtl(Long msgTtl) {
+		this.msgTtl = msgTtl;
 	}
 
-	public boolean isDmqEligible() {
-		return dmqEligible;
+	public boolean isMsgDmqEligible() {
+		return msgDmqEligible;
 	}
 
-	public void setDmqEligible(boolean dmqEligible) {
-		this.dmqEligible = dmqEligible;
+	public void setMsgDmqEligible(boolean msgDmqEligible) {
+		this.msgDmqEligible = msgDmqEligible;
 	}
 }

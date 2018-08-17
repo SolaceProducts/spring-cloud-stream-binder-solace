@@ -15,6 +15,9 @@ import org.springframework.cloud.stream.binder.ExtendedConsumerProperties;
 import org.springframework.cloud.stream.provisioning.ConsumerDestination;
 import org.springframework.context.Lifecycle;
 import org.springframework.integration.endpoint.AbstractMessageSource;
+import org.springframework.integration.support.AckUtils;
+import org.springframework.integration.support.StaticMessageHeaderAccessor;
+import org.springframework.messaging.Message;
 import org.springframework.messaging.MessagingException;
 
 import java.util.UUID;
@@ -46,7 +49,7 @@ public class JCSMPMessageSource extends AbstractMessageSource<Object> implements
 	@Override
 	protected Object doReceive() {
 		if (!isRunning()) {
-			String msg = String.format("Cannot send message, message source %s is not running", id);
+			String msg = String.format("Cannot receive message, message source %s is not running", id);
 			logger.warn(msg);
 			throw new MessagingException(msg);
 		}
@@ -67,7 +70,7 @@ public class JCSMPMessageSource extends AbstractMessageSource<Object> implements
 			}
 		}
 
-		return xmlMessage != null ? xmlMessageMapper.map(xmlMessage) : null;
+		return xmlMessage != null ? xmlMessageMapper.map(xmlMessage, true) : null;
 	}
 
 	@Override

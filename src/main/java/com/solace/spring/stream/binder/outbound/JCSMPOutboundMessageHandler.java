@@ -3,7 +3,6 @@ package com.solace.spring.stream.binder.outbound;
 import com.solace.spring.stream.binder.properties.SolaceProducerProperties;
 import com.solace.spring.stream.binder.util.JCSMPSessionProducerManager;
 import com.solace.spring.stream.binder.util.XMLMessageMapper;
-import com.solacesystems.jcsmp.DeliveryMode;
 import com.solacesystems.jcsmp.JCSMPException;
 import com.solacesystems.jcsmp.JCSMPFactory;
 import com.solacesystems.jcsmp.JCSMPSession;
@@ -28,8 +27,7 @@ public class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
 	private final JCSMPSession jcsmpSession;
 	private MessageChannel errorChannel;
 	private JCSMPSessionProducerManager producerManager;
-	private boolean isMessagesDmqEligible;
-	private Long messageTimeToLive;
+	private ExtendedProducerProperties<SolaceProducerProperties> producerProperties;
 	private XMLMessageProducer producer;
 	private final XMLMessageMapper xmlMessageMapper = new XMLMessageMapper();
 	private boolean isRunning = false;
@@ -39,15 +37,13 @@ public class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
 	public JCSMPOutboundMessageHandler(ProducerDestination destination,
 									   JCSMPSession jcsmpSession,
 									   MessageChannel errorChannel,
-									   JCSMPSessionProducerManager producerManager,
-									   boolean isMessagesDmqEligible,
-									   ExtendedProducerProperties<SolaceProducerProperties> producerProperties) {
+									   ExtendedProducerProperties<SolaceProducerProperties> producerProperties,
+									   JCSMPSessionProducerManager producerManager) {
 		this.topic = JCSMPFactory.onlyInstance().createTopic(destination.getName());
 		this.jcsmpSession = jcsmpSession;
 		this.errorChannel = errorChannel;
 		this.producerManager = producerManager;
-		this.isMessagesDmqEligible = isMessagesDmqEligible;
-		this.messageTimeToLive = producerProperties.getExtension().getMsgTimeToLive();
+		this.producerProperties = producerProperties;
 	}
 
 	@Override
@@ -57,10 +53,7 @@ public class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
 					String.format("Cannot send message, message handler %s is not running", id), message, null);
 		}
 
-		XMLMessage xmlMessage = xmlMessageMapper.map(message);
-		xmlMessage.setDeliveryMode(DeliveryMode.PERSISTENT);
-		xmlMessage.setDMQEligible(isMessagesDmqEligible);
-		if (messageTimeToLive != null) xmlMessage.setTimeToLive(messageTimeToLive);
+		XMLMessage xmlMessage = xmlMessageMapper.map(message, producerProperties.getExtension());
 
 		try {
 			producer.send(xmlMessage, topic);
@@ -92,7 +85,7 @@ public class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
 	@Override
 	public void stop() {
 		logger.info(String.format("Stopping producer to topic %s <message handler ID: %s>", topic.getName(), id));
-		producerManager.close(id);
+		producerManager.release(id);
 		isRunning = false;
 	}
 
