@@ -58,15 +58,15 @@ public class SolaceProvisioningUtil {
 	public static String getQueueName(String topicName, String groupName,
 								SolaceConsumerProperties consumerProperties, boolean isAnonymous) {
 		return getQueueName(topicName, groupName, consumerProperties,
-				isAnonymous, consumerProperties.getAnonymousGroupPrefix());
+				isAnonymous, consumerProperties.getAnonymousGroupPostfix());
 	}
 
 	private static String getQueueName(String topicName, String groupName,
 								SolaceCommonProperties properties,
-								boolean isAnonymous, String anonGroupPrefix) {
+								boolean isAnonymous, String anonGroupPostfix) {
 		String queueName;
 		if (isAnonymous) {
-			queueName = topicName + QUEUE_NAME_DELIM + JCSMPFactory.onlyInstance().createUniqueName(anonGroupPrefix);
+			queueName = topicName + QUEUE_NAME_DELIM + JCSMPFactory.onlyInstance().createUniqueName(anonGroupPostfix);
 		} else {
 			queueName = topicName + QUEUE_NAME_DELIM + groupName;
 		}

@@ -3,8 +3,8 @@ package com.solace.spring.cloud.stream.binder.properties;
 import com.solacesystems.jcsmp.EndpointProperties;
 
 public class SolaceConsumerProperties extends SolaceCommonProperties {
-	private String anonymousGroupPrefix = "anon";
-	private int polledConsumerWaitTimeInMillis = 500;
+	private String anonymousGroupPostfix = "anon";
+	private int polledConsumerWaitTimeInMillis = 100;
 	private boolean requeueRejected = false;
 
 	// DMQ Properties ---------
@@ -16,15 +16,15 @@ public class SolaceConsumerProperties extends SolaceCommonProperties {
 	private Integer dmqMaxMsgSize = null;
 	private Integer dmqQuota = null;
 	private Boolean dmqRespectsMsgTtl = null;
-	private Long republishedMsgTtl;
+	private Long republishedMsgTtl = null;
 	// ------------------------
 
-	public String getAnonymousGroupPrefix() {
-		return anonymousGroupPrefix;
+	public String getAnonymousGroupPostfix() {
+		return anonymousGroupPostfix;
 	}
 
-	public void setAnonymousGroupPrefix(String anonymousGroupPrefix) {
-		this.anonymousGroupPrefix = anonymousGroupPrefix;
+	public void setAnonymousGroupPostfix(String anonymousGroupPostfix) {
+		this.anonymousGroupPostfix = anonymousGroupPostfix;
 	}
 
 	public int getPolledConsumerWaitTimeInMillis() {

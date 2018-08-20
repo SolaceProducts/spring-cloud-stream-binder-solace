@@ -30,7 +30,7 @@ public class XMLMessageMapper {
 
 	public XMLMessage map(Message<?> message, SolaceProducerProperties producerProperties) {
 		XMLMessage xmlMessage = map(message);
-		xmlMessage.setDMQEligible(producerProperties.isMsgDmqEligible());
+		xmlMessage.setDMQEligible(producerProperties.isMsgInternalDmqEligible());
 		if (producerProperties.getMsgTtl() != null) {
 			xmlMessage.setTimeToLive(producerProperties.getMsgTtl());
 		}

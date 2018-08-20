@@ -1,8 +1,8 @@
 package com.solace.spring.cloud.stream.binder.properties;
 
 public class SolaceProducerProperties extends SolaceCommonProperties {
-	private Long msgTtl;
-	private boolean msgDmqEligible = false;
+	private Long msgTtl = null;
+	private boolean msgInternalDmqEligible = false;
 
 	public Long getMsgTtl() {
 		return msgTtl;
@@ -12,11 +12,11 @@ public class SolaceProducerProperties extends SolaceCommonProperties {
 		this.msgTtl = msgTtl;
 	}
 
-	public boolean isMsgDmqEligible() {
-		return msgDmqEligible;
+	public boolean isMsgInternalDmqEligible() {
+		return msgInternalDmqEligible;
 	}
 
-	public void setMsgDmqEligible(boolean msgDmqEligible) {
-		this.msgDmqEligible = msgDmqEligible;
+	public void setMsgInternalDmqEligible(boolean msgInternalDmqEligible) {
+		this.msgInternalDmqEligible = msgInternalDmqEligible;
 	}
 }
