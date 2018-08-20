@@ -1,14 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>com.solace.spring.stream</groupId>
-  <artifactId>spring-cloud-stream-binder-solace</artifactId>
-  <packaging>jar</packaging>
+  <groupId>com.solace.spring.cloud.stream</groupId>
+  <artifactId>spring-cloud-stream-binder-solace-parent</artifactId>
   <version>0.0.3-SNAPSHOT</version>
-  <name>spring-cloud-stream-binder-solace</name>
-  <description>A Spring Cloud Stream Binder implementation using the Solace Java API (JCSMP)</description>
-
+  <packaging>pom</packaging>
+  <name>Solace Spring Cloud Stream Starter and Binder</name>
+  <description>Parent POM for the Solace Spring Cloud Stream Binder</description>
   <url>https://github.com/SolaceDev/spring-cloud-stream-binder-solace</url>
+
+  <parent>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-build</artifactId>
+    <version>2.0.2.RELEASE</version>
+    <relativePath />
+  </parent>
 
   <licenses>
     <license>
@@ -63,31 +69,33 @@
     </pluginRepository>
   </pluginRepositories>
 
-  <dependencies>
-    <dependency>
-      <groupId>com.solacesystems</groupId>
-      <artifactId>sol-jcsmp</artifactId>
-      <version>[10,)</version>
-    </dependency>
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>com.solacesystems</groupId>
+        <artifactId>sol-jcsmp</artifactId>
+        <version>[10,)</version>
+      </dependency>
 
-    <dependency>
-      <groupId>com.solace.spring.boot</groupId>
-      <artifactId>solace-java-spring-boot-starter</artifactId>
-      <version>2.0.0</version>
-    </dependency>
+      <dependency>
+        <groupId>com.solace.spring.boot</groupId>
+        <artifactId>solace-java-spring-boot-starter</artifactId>
+        <version>2.0.0</version>
+      </dependency>
 
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot</artifactId>
-      <version>2.0.3.RELEASE</version>
-    </dependency>
+      <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot</artifactId>
+        <version>2.0.3.RELEASE</version>
+      </dependency>
 
-    <dependency>
-      <groupId>org.springframework.cloud</groupId>
-      <artifactId>spring-cloud-stream</artifactId>
-      <version>2.0.0.RELEASE</version>
-    </dependency>
-  </dependencies>
+      <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-stream</artifactId>
+        <version>2.0.0.RELEASE</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <build>
     <plugins>
@@ -142,6 +150,11 @@
         <gpg.executable>gpg2</gpg.executable>
         <gpg.passphrase>Solace1!</gpg.passphrase>
       </properties>
+	  <modules>
+	    <module>spring-cloud-stream-binder-solace-core</module>
+	    <module>spring-cloud-stream-binder-solace</module>
+		<module>spring-cloud-starter-stream-solace</module>
+	  </modules>
       <distributionManagement>
         <snapshotRepository>
           <id>ossrh</id>
@@ -193,6 +206,11 @@
           <name>!releaseCentral</name>
         </property>
       </activation>
+	  <modules>
+	    <module>spring-cloud-stream-binder-solace-core</module>
+	    <module>spring-cloud-stream-binder-solace</module>
+		<module>spring-cloud-starter-stream-solace</module>
+	  </modules>
       <distributionManagement>
         <repository>
           <id>releases</id>
