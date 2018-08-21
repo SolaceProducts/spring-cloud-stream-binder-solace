@@ -31,7 +31,7 @@ The following is a brief introduction copied from their documentation:
 
 ### Updating your build
 
-The releases from this project are hosted in [Maven Central](https://mvnrepository.com/artifact/com.solace.spring.cloud.stream/spring-cloud-starter-stream-solace).
+The releases from this project are hosted in [Maven Central](https://mvnrepository.com/artifact/com.solace.spring.cloud/spring-cloud-starter-stream-solace).
 
 The easiest way to get started is to include the `spring-cloud-starter-stream-solace` in your application.
 
@@ -41,7 +41,7 @@ Here is how to include the spring cloud stream starter in your project using Gra
 
 ```groovy
 // Solace Spring Cloud Stream Binder
-compile("com.solace.spring.cloud.stream:spring-cloud-starter-stream-solace:0.+")
+compile("com.solace.spring.cloud:spring-cloud-starter-stream-solace:0.+")
 ```
 
 #### Using it with Maven
@@ -49,7 +49,7 @@ compile("com.solace.spring.cloud.stream:spring-cloud-starter-stream-solace:0.+")
 ```xml
 <!-- Solace Spring Cloud Stream Binder -->
 <dependency>
-  <groupId>com.solace.spring.cloud.stream</groupId>
+  <groupId>com.solace.spring.cloud</groupId>
   <artifactId>spring-cloud-starter-stream-solace</artifactId>
   <version>0.+</version>
 </dependency>
@@ -78,7 +78,7 @@ cd spring-cloud-stream-binder-solace
 mvn package
 ```
 
-This will build the [Solace binder core](https://github.com/SolaceDev/spring-cloud-stream-binder-solace/tree/dev/spring-cloud-stream-binder-solace-core), the [Solace binder itself](https://github.com/SolaceDev/spring-cloud-stream-binder-solace/tree/dev/spring-cloud-stream-binder-solace), and the [Solace spring cloud stream starter](https://github.com/SolaceDev/spring-cloud-stream-binder-solace/tree/dev/spring-cloud-starter-stream-solace) jars.
+This will build the [Solace binder core](https://github.com/SolaceLabs/spring-cloud-stream-binder-solace/tree/dev/spring-cloud-stream-binder-solace-core), the [Solace binder itself](https://github.com/SolaceLabs/spring-cloud-stream-binder-solace/tree/dev/spring-cloud-stream-binder-solace), and the [Solace spring cloud stream starter](https://github.com/SolaceLabs/spring-cloud-stream-binder-solace/tree/dev/spring-cloud-starter-stream-solace) jars.
 
 Note: As currently setup, the build requires Java 1.8. If you want to use another older version of Java adjust the build accordingly.
 
