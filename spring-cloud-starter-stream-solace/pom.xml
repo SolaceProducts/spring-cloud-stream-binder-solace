@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>com.solace.spring.cloud.stream</groupId>
+    <groupId>com.solace.spring.cloud</groupId>
     <artifactId>spring-cloud-stream-binder-solace-parent</artifactId>
 	<version>0.0.6-SNAPSHOT</version>
 	<relativePath>../pom.xml</relativePath>
@@ -21,7 +21,7 @@
 
   <dependencies>
     <dependency>
-	  <groupId>com.solace.spring.cloud.stream</groupId>
+	  <groupId>com.solace.spring.cloud</groupId>
 	  <artifactId>spring-cloud-stream-binder-solace</artifactId>
 	  <version>${project.version}</version>
 	</dependency>
