@@ -7,9 +7,11 @@ import com.solacesystems.jcsmp.InvalidPropertiesException;
 import com.solacesystems.jcsmp.JCSMPException;
 import com.solacesystems.jcsmp.JCSMPSession;
 import com.solacesystems.jcsmp.SpringJCSMPFactory;
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.ConfigFileApplicationContextInitializer;
 import org.springframework.cloud.stream.binder.ExtendedConsumerProperties;
 import org.springframework.cloud.stream.binder.ExtendedProducerProperties;
@@ -25,6 +27,9 @@ public class SolaceBinderTest
 
 	@Autowired
 	private SpringJCSMPFactory springJCSMPFactory;
+
+	@Value("${test.failOnConnectionException:false}")
+	private Boolean failOnConnectionException;
 
 	private static JCSMPException sessionConnectError;
 
@@ -77,11 +82,7 @@ public class SolaceBinderTest
 
 
 	private JCSMPSession assumeAndGetActiveSession() throws InvalidPropertiesException {
-		String connectMsg = "Couldn't establish a connection to a Solace message broker. Skipping test...";
-		if (sessionConnectError != null) {
-			logger.warn(connectMsg);
-			Assume.assumeNoException(connectMsg, sessionConnectError);
-		}
+		handleConnectionError();
 
 		JCSMPSession session = springJCSMPFactory.createSession();
 
@@ -89,9 +90,22 @@ public class SolaceBinderTest
 			session.connect();
 		} catch (JCSMPException e) {
 			sessionConnectError = e;
-			logger.warn(connectMsg, e);
+			handleConnectionError();
+		}
+
+		return session;
+	}
+
+	private void handleConnectionError() {
+		if (sessionConnectError == null) return;
+
+		String connectMsg = "Failed to establish connection to a Solace message broker. Skipping test...";
+		logger.warn(connectMsg);
+		if (failOnConnectionException) {
+			Assert.fail(connectMsg);
+		}
+		else {
 			Assume.assumeNoException(connectMsg, sessionConnectError);
 		}
-		return session;
 	}
 }
