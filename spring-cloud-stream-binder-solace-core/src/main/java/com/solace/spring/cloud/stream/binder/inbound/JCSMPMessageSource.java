@@ -105,6 +105,7 @@ public class JCSMPMessageSource extends AbstractMessageSource<Object> implements
 
 	@Override
 	public void stop() {
+		if (!isRunning()) return;
 		logger.info(String.format("Stopping consumer to queue %s <message source ID: %s>", queueName, id));
 		consumerFlowReceiver.close();
 		isRunning = false;

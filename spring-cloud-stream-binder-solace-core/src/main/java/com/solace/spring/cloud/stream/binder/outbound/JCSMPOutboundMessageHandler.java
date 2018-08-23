@@ -84,6 +84,7 @@ public class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
 
 	@Override
 	public void stop() {
+		if (!isRunning()) return;
 		logger.info(String.format("Stopping producer to topic %s <message handler ID: %s>", topic.getName(), id));
 		producerManager.release(id);
 		isRunning = false;

@@ -1,7 +1,6 @@
 package com.solace.spring.cloud.stream.binder.provisioning;
 
 import com.solace.spring.cloud.stream.binder.util.SolaceProvisioningUtil;
-import com.solace.spring.cloud.stream.binder.properties.SolaceCommonProperties;
 import com.solacesystems.jcsmp.EndpointProperties;
 import com.solacesystems.jcsmp.JCSMPErrorResponseException;
 import com.solacesystems.jcsmp.JCSMPErrorResponseSubcodeEx;
@@ -50,8 +49,9 @@ public class SolaceQueueProvisioner
 
 		for (String groupName : properties.getRequiredGroups()) {
 			String queueName = SolaceProvisioningUtil.getQueueName(topicName, groupName, properties.getExtension());
+			EndpointProperties endpointProperties = SolaceProvisioningUtil.getEndpointProperties(properties.getExtension());
 			logger.info(String.format("Creating durable queue %s for required consumer group %s", queueName, groupName));
-			Queue queue = provisionQueue(queueName, true, properties.getExtension());
+			Queue queue = provisionQueue(queueName, true, endpointProperties);
 
 			addSubscriptionToQueue(queue, topicName);
 			queueToTopicBindings.put(queue.getName(), topicName);
@@ -78,7 +78,8 @@ public class SolaceQueueProvisioner
 		logger.info(isAnonQueue ?
 				String.format("Creating anonymous (temporary) queue %s", queueName) :
 				String.format("Creating %s queue %s for consumer group %s", isDurableQueue ? "durable" : "temporary", queueName, group));
-		Queue queue = provisionQueue(queueName, isDurableQueue, properties.getExtension());
+		EndpointProperties endpointProperties = SolaceProvisioningUtil.getEndpointProperties(properties.getExtension());
+		Queue queue = provisionQueue(queueName, isDurableQueue, endpointProperties);
 		queueToTopicBindings.put(queue.getName(), topicName);
 
 		if (properties.getExtension().isAutoBindDmq()) {
@@ -88,12 +89,11 @@ public class SolaceQueueProvisioner
 		return new SolaceConsumerDestination(queue.getName());
 	}
 
-	private Queue provisionQueue(String name, boolean isDurable, SolaceCommonProperties properties) throws ProvisioningException {
+	private Queue provisionQueue(String name, boolean isDurable, EndpointProperties endpointProperties) throws ProvisioningException {
 		Queue queue;
 		if (isDurable) {
 			try {
 				queue = JCSMPFactory.onlyInstance().createQueue(name);
-				EndpointProperties endpointProperties = SolaceProvisioningUtil.getEndpointProperties(properties);
 				jcsmpSession.provision(queue, endpointProperties, JCSMPSession.FLAG_IGNORE_ALREADY_EXISTS);
 			} catch (JCSMPException e) {
 				String msg = String.format("Failed to provision durable queue %s", name);
@@ -117,15 +117,7 @@ public class SolaceQueueProvisioner
 	private void provisionDMQ(String queueName, SolaceConsumerProperties properties) {
 		String dmqName = SolaceProvisioningUtil.getDMQName(queueName);
 		logger.info(String.format("Provisioning DMQ %s", dmqName));
-		try {
-			EndpointProperties endpointProperties = SolaceProvisioningUtil.getDMQEndpointProperties(properties);
-			Queue dmq = JCSMPFactory.onlyInstance().createQueue(dmqName);
-			jcsmpSession.provision(dmq, endpointProperties, JCSMPSession.FLAG_IGNORE_ALREADY_EXISTS);
-		} catch (JCSMPException e) {
-			String msg = String.format("Failed to provision dead message queue %s", dmqName);
-			logger.warn(msg, e);
-			throw new ProvisioningException(msg, e);
-		}
+		provisionQueue(dmqName, true, SolaceProvisioningUtil.getDMQEndpointProperties(properties));
 	}
 
 	public void addSubscriptionToQueue(Queue queue, String topicName) {

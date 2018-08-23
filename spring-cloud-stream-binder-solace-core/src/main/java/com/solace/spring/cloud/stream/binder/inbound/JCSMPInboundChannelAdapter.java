@@ -76,9 +76,10 @@ public class JCSMPInboundChannelAdapter extends MessageProducerSupport implement
 
 	@Override
 	protected void doStop() {
+		if (!isRunning()) return;
 		final String queueName = consumerDestination.getName();
 		logger.info(String.format("Stopping consumer flow from queue %s <inbound adapter ID: %s>", queueName, id));
-		consumerFlowReceiver.stop();
+		consumerFlowReceiver.close();
 	}
 
 	@Override
