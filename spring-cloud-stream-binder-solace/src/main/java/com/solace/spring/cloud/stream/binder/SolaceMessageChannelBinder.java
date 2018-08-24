@@ -23,6 +23,7 @@ import com.solace.spring.cloud.stream.binder.provisioning.SolaceQueueProvisioner
 import org.springframework.cloud.stream.provisioning.ConsumerDestination;
 import org.springframework.cloud.stream.provisioning.ProducerDestination;
 import org.springframework.integration.core.MessageProducer;
+import org.springframework.integration.support.DefaultErrorMessageStrategy;
 import org.springframework.integration.support.ErrorMessageStrategy;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
@@ -61,7 +62,14 @@ public class SolaceMessageChannelBinder
 	protected MessageHandler createProducerMessageHandler(ProducerDestination destination,
 														  ExtendedProducerProperties<SolaceProducerProperties> producerProperties,
 														  MessageChannel errorChannel) {
-		return new JCSMPOutboundMessageHandler(destination, jcsmpSession, errorChannel, producerProperties, sessionProducerManager);
+		JCSMPOutboundMessageHandler handler = new JCSMPOutboundMessageHandler(
+				destination, jcsmpSession, errorChannel, producerProperties, sessionProducerManager);
+
+		if (errorChannel != null) {
+			handler.setErrorMessageStrategy(new DefaultErrorMessageStrategy());
+		}
+
+		return handler;
 	}
 
 	@Override

@@ -1,6 +1,7 @@
 package com.solace.spring.cloud.stream.binder.inbound;
 
 import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
+import com.solace.spring.cloud.stream.binder.util.ClosedChannelBindingException;
 import com.solace.spring.cloud.stream.binder.util.XMLMessageMapper;
 import com.solacesystems.jcsmp.BytesXMLMessage;
 import com.solacesystems.jcsmp.ConsumerFlowProperties;
@@ -46,9 +47,11 @@ public class JCSMPMessageSource extends AbstractMessageSource<Object> implements
 	@Override
 	protected Object doReceive() {
 		if (!isRunning()) {
-			String msg = String.format("Cannot receive message, message source %s is not running", id);
-			logger.warn(msg);
-			throw new MessagingException(msg);
+			String msg0 = String.format("Cannot receive message using message source %s", id);
+			String msg1 = String.format("Message source %s is not running", id);
+			ClosedChannelBindingException closedBindingException = new ClosedChannelBindingException(msg1);
+			logger.warn(msg0, closedBindingException);
+			throw new MessagingException(msg0, closedBindingException);
 		}
 
 		BytesXMLMessage xmlMessage;

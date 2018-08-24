@@ -1,6 +1,7 @@
 package com.solace.spring.cloud.stream.binder.outbound;
 
 import com.solace.spring.cloud.stream.binder.properties.SolaceProducerProperties;
+import com.solace.spring.cloud.stream.binder.util.ClosedChannelBindingException;
 import com.solace.spring.cloud.stream.binder.util.JCSMPSessionProducerManager;
 import com.solace.spring.cloud.stream.binder.util.XMLMessageMapper;
 import com.solacesystems.jcsmp.JCSMPException;
@@ -14,6 +15,7 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.cloud.stream.binder.ExtendedProducerProperties;
 import org.springframework.cloud.stream.provisioning.ProducerDestination;
 import org.springframework.context.Lifecycle;
+import org.springframework.integration.support.ErrorMessageStrategy;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.MessageHandler;
@@ -31,6 +33,7 @@ public class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
 	private XMLMessageProducer producer;
 	private final XMLMessageMapper xmlMessageMapper = new XMLMessageMapper();
 	private boolean isRunning = false;
+	private ErrorMessageStrategy errorMessageStrategy;
 
 	private static final Log logger = LogFactory.getLog(JCSMPOutboundMessageHandler.class);
 
@@ -49,8 +52,9 @@ public class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
 	@Override
 	public void handleMessage(Message<?> message) throws MessagingException {
 		if (! isRunning()) {
-			throw handleMessagingException(
-					String.format("Cannot send message, message handler %s is not running", id), message, null);
+			String msg0 = String.format("Cannot send message using handler %s", id);
+			String msg1 = String.format("Message handler %s is not running", id);
+			throw handleMessagingException(msg0, message, new ClosedChannelBindingException(msg1));
 		}
 
 		XMLMessage xmlMessage = xmlMessageMapper.map(message, producerProperties.getExtension());
@@ -95,16 +99,15 @@ public class JCSMPOutboundMessageHandler implements MessageHandler, Lifecycle {
 		return isRunning;
 	}
 
+	public void setErrorMessageStrategy(ErrorMessageStrategy errorMessageStrategy) {
+		this.errorMessageStrategy = errorMessageStrategy;
+	}
+
 	private MessagingException handleMessagingException(String msg, Message<?> message, Exception e)
 			throws MessagingException {
-		if (e != null) {
-			logger.warn(msg, e);
-		}
-		else {
-			logger.warn(msg);
-		}
-
-		if (errorChannel != null) errorChannel.send(message);
-		return e != null ? new MessagingException(msg, e) : new MessagingException(msg);
+		logger.warn(msg, e);
+		MessagingException exception = new MessagingException(message, msg, e);
+		if (errorChannel != null) errorChannel.send(errorMessageStrategy.buildErrorMessage(exception, null));
+		return exception;
 	}
 }
