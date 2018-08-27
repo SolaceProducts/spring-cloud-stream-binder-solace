@@ -5,6 +5,10 @@ public class SolaceMessageConversionException extends RuntimeException {
 		super(message);
 	}
 
+	public SolaceMessageConversionException(Throwable throwable) {
+		super(throwable);
+	}
+
 	public SolaceMessageConversionException(String message, Throwable throwable) {
 		super(message, throwable);
 	}

@@ -11,7 +11,7 @@ class JCSMPAcknowledgementCallbackFactory implements AcknowledgmentCallbackFacto
 		return new JCSMPAcknowledgementCallback(xmlMessage);
 	}
 
-	private static class JCSMPAcknowledgementCallback implements AcknowledgmentCallback {
+	static class JCSMPAcknowledgementCallback implements AcknowledgmentCallback {
 		private XMLMessage xmlMessage;
 		private boolean acknowledged = false;
 		private boolean autoAckEnabled = true;
