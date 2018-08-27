@@ -4,7 +4,11 @@ import com.solace.spring.boot.autoconfigure.SolaceJavaAutoConfiguration;
 import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
 import com.solace.spring.cloud.stream.binder.properties.SolaceProducerProperties;
 import com.solacesystems.jcsmp.ClosedFacilityException;
+import com.solacesystems.jcsmp.EndpointProperties;
+import com.solacesystems.jcsmp.JCSMPFactory;
 import com.solacesystems.jcsmp.JCSMPSession;
+import com.solacesystems.jcsmp.PropertyMismatchException;
+import com.solacesystems.jcsmp.Queue;
 import com.solacesystems.jcsmp.SpringJCSMPFactory;
 import org.junit.Assume;
 import org.junit.Test;
@@ -18,6 +22,7 @@ import org.springframework.cloud.stream.binder.ExtendedProducerProperties;
 import org.springframework.cloud.stream.binder.PartitionCapableBinderTests;
 import org.springframework.cloud.stream.binder.Spy;
 import org.springframework.cloud.stream.config.BindingProperties;
+import org.springframework.cloud.stream.provisioning.ProvisioningException;
 import org.springframework.integration.channel.DirectChannel;
 import org.springframework.integration.context.IntegrationContextUtils;
 import org.springframework.integration.support.MessageBuilder;
@@ -177,5 +182,105 @@ public class SolaceBinderTest
 		assertThat(errorMessage.get().getPayload()).isInstanceOf(MessagingException.class);
 		assertThat((MessagingException) errorMessage.get().getPayload()).hasCauseInstanceOf(ClosedFacilityException.class);
 		producerBinding.unbind();
+	}
+
+	@Test
+	public void testFailProducerProvisioningOnRequiredQueuePropertyChange() throws Exception {
+		SolaceTestBinder binder = getBinder();
+
+		String destination0 = String.format("foo%s0", getDestinationNameDelimiter());
+		String group0 = "testFailProducerProvisioningOnRequiredQueuePropertyChange";
+
+		int defaultAccessType = createConsumerProperties().getExtension().getQueueAccessType();
+		EndpointProperties endpointProperties = new EndpointProperties();
+		endpointProperties.setAccessType((defaultAccessType + 1) % 2);
+		Queue queue = JCSMPFactory.onlyInstance().createQueue(destination0 + getDestinationNameDelimiter() + group0);
+
+		logger.info(String.format("Provisioning queue %s with AccessType %s to conflict with defaultAccessType %s",
+				queue.getName(), endpointProperties.getAccessType(), defaultAccessType));
+		jcsmpSession.provision(queue, endpointProperties, JCSMPSession.WAIT_FOR_CONFIRM);
+
+		DirectChannel moduleOutputChannel = createBindableChannel("output", new BindingProperties());
+		Binding<MessageChannel> producerBinding;
+		try {
+			ExtendedProducerProperties<SolaceProducerProperties> bindingProducerProperties = createProducerProperties();
+			bindingProducerProperties.setRequiredGroups(group0);
+			producerBinding = binder.bindProducer(destination0, moduleOutputChannel, bindingProducerProperties);
+			producerBinding.unbind();
+			fail("Expected producer provisioning to fail due to queue property change");
+		} catch (ProvisioningException e) {
+			assertThat(e).hasCauseInstanceOf(PropertyMismatchException.class);
+			logger.info(String.format("Successfully threw a %s exception with cause %s",
+					ProvisioningException.class.getSimpleName(), PropertyMismatchException.class.getSimpleName()));
+		} finally {
+			jcsmpSession.deprovision(queue, JCSMPSession.FLAG_IGNORE_DOES_NOT_EXIST);
+		}
+	}
+
+	@Test
+	public void testFailConsumerProvisioningOnQueuePropertyChange() throws Exception {
+		SolaceTestBinder binder = getBinder();
+
+		String destination0 = String.format("foo%s0", getDestinationNameDelimiter());
+		String group0 = "testFailConsumerProvisioningOnQueuePropertyChange";
+
+		int defaultAccessType = createConsumerProperties().getExtension().getQueueAccessType();
+		EndpointProperties endpointProperties = new EndpointProperties();
+		endpointProperties.setAccessType((defaultAccessType + 1) % 2);
+		Queue queue = JCSMPFactory.onlyInstance().createQueue(destination0 + getDestinationNameDelimiter() + group0);
+
+		logger.info(String.format("Provisioning queue %s with AccessType %s to conflict with defaultAccessType %s",
+				queue.getName(), endpointProperties.getAccessType(), defaultAccessType));
+		jcsmpSession.provision(queue, endpointProperties, JCSMPSession.WAIT_FOR_CONFIRM);
+
+		DirectChannel moduleInputChannel = createBindableChannel("input", new BindingProperties());
+		Binding<MessageChannel> consumerBinding;
+		try {
+			consumerBinding = binder.bindConsumer(
+					destination0, group0, moduleInputChannel, createConsumerProperties());
+			consumerBinding.unbind();
+			fail("Expected consumer provisioning to fail due to queue property change");
+		} catch (ProvisioningException e) {
+			assertThat(e).hasCauseInstanceOf(PropertyMismatchException.class);
+			logger.info(String.format("Successfully threw a %s exception with cause %s",
+					ProvisioningException.class.getSimpleName(), PropertyMismatchException.class.getSimpleName()));
+		} finally {
+			jcsmpSession.deprovision(queue, JCSMPSession.FLAG_IGNORE_DOES_NOT_EXIST);
+		}
+	}
+
+	@Test
+	public void testFailConsumerProvisioningOnDmqPropertyChange() throws Exception {
+		SolaceTestBinder binder = getBinder();
+
+		String destination0 = String.format("foo%s0", getDestinationNameDelimiter());
+		String group0 = "testFailConsumerProvisioningOnDmqPropertyChange";
+
+		int defaultAccessType = createConsumerProperties().getExtension().getQueueAccessType();
+		EndpointProperties endpointProperties = new EndpointProperties();
+		endpointProperties.setAccessType((defaultAccessType + 1) % 2);
+		String dmqName = destination0 + getDestinationNameDelimiter() + group0 + getDestinationNameDelimiter() + "dmq";
+		Queue dmq = JCSMPFactory.onlyInstance().createQueue(dmqName);
+
+		logger.info(String.format("Provisioning DMQ %s with AccessType %s to conflict with defaultAccessType %s",
+				dmq.getName(), endpointProperties.getAccessType(), defaultAccessType));
+		jcsmpSession.provision(dmq, endpointProperties, JCSMPSession.WAIT_FOR_CONFIRM);
+
+		DirectChannel moduleInputChannel = createBindableChannel("input", new BindingProperties());
+		Binding<MessageChannel> consumerBinding;
+		try {
+			ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties = createConsumerProperties();
+			consumerProperties.getExtension().setAutoBindDmq(true);
+			consumerBinding = binder.bindConsumer(
+					destination0, group0, moduleInputChannel, consumerProperties);
+			consumerBinding.unbind();
+			fail("Expected consumer provisioning to fail due to DMQ property change");
+		} catch (ProvisioningException e) {
+			assertThat(e).hasCauseInstanceOf(PropertyMismatchException.class);
+			logger.info(String.format("Successfully threw a %s exception with cause %s",
+					ProvisioningException.class.getSimpleName(), PropertyMismatchException.class.getSimpleName()));
+		} finally {
+			jcsmpSession.deprovision(dmq, JCSMPSession.FLAG_IGNORE_DOES_NOT_EXIST);
+		}
 	}
 }
