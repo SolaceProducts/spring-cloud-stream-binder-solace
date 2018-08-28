@@ -13,6 +13,8 @@ import com.solacesystems.jcsmp.StreamMessage;
 import com.solacesystems.jcsmp.TextMessage;
 import com.solacesystems.jcsmp.XMLContentMessage;
 import com.solacesystems.jcsmp.XMLMessage;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Before;
@@ -39,6 +41,8 @@ public class XMLMessageMapperTest {
 	public void setupMockito() {
 		MockitoAnnotations.initMocks(this);
 	}
+
+	private static Log logger = LogFactory.getLog(XMLMessageMapperTest.class);
 
 	@Test
 	public void testMapSpringMessageToXMLMessage_ByteArray() throws Exception {
@@ -359,6 +363,26 @@ public class XMLMessageMapperTest {
 		Assert.assertNull(messageHeaders.get(xmlMessageMapper.getIsHeaderSerializedMetadataKey(key)));
 	}
 
+	@Test
+	public void testMapLoop() throws Exception {
+		TextMessage textMessage = JCSMPFactory.onlyInstance().createMessage(TextMessage.class);
+		textMessage.setText("testPayload");
+		SDTMap metadata = JCSMPFactory.onlyInstance().createMap();
+		metadata.putString("test-header-1", "test-header-val-1");
+		metadata.putString("test-header-2", "test-header-val-2");
+		textMessage.setProperties(metadata);
+		textMessage.setDeliveryMode(DeliveryMode.PERSISTENT);
+
+		XMLMessage xmlMessage = textMessage;
+		Message<?> springMessage;
+		for (int i = 0; i < 3; i++) {
+			logger.info(String.format("Iteration %s - XMLMessage to Message<?>:\n%s", i, xmlMessage));
+			springMessage = xmlMessageMapper.map(xmlMessage);
+			logger.info(String.format("Iteration %s - Message<?> to XMLMessage:\n%s", i, springMessage));
+			xmlMessage = xmlMessageMapper.map(springMessage);
+		}
+	}
+
 	private void validateXMLMessage(XMLMessage xmlMessage, MessageHeaders expectedHeaders) throws Exception {
 		Assert.assertEquals(DeliveryMode.PERSISTENT, xmlMessage.getDeliveryMode());
 
@@ -379,9 +403,7 @@ public class XMLMessageMapperTest {
 		MessageHeaders messageHeaders = message.getHeaders();
 
 		for (String customHeaderName : XMLMessageMapper.CUSTOM_HEADERS) {
-			Assert.assertFalse(
-					String.format("Unexpected custom header %s was found in the Spring Message", customHeaderName),
-					messageHeaders.containsKey(customHeaderName));
+			Assert.assertThat(messageHeaders.keySet(), CoreMatchers.not(CoreMatchers.hasItem(customHeaderName)));
 		}
 
 		for (String headerName : expectedHeaders.keySet()) {

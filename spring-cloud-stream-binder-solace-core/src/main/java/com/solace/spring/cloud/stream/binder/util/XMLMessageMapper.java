@@ -65,7 +65,6 @@ public class XMLMessageMapper {
 	XMLMessage map(Message<?> message) {
 		XMLMessage xmlMessage;
 		Object payload = message.getPayload();
-
 		SDTMap metadata = map(message.getHeaders());
 
 		if (payload instanceof byte[]) {
@@ -167,6 +166,8 @@ public class XMLMessageMapper {
 	SDTMap map(MessageHeaders headers) {
 		SDTMap metadata = JCSMPFactory.onlyInstance().createMap();
 		for (Map.Entry<String,Object> header : headers.entrySet()) {
+			if (header.getKey().equalsIgnoreCase(IntegrationMessageHeaderAccessor.ACKNOWLEDGMENT_CALLBACK)) continue;
+
 			Object value = header.getValue();
 
 			if (value instanceof UUID) {
