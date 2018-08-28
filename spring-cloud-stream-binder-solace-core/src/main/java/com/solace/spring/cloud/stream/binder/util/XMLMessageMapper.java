@@ -2,9 +2,12 @@ package com.solace.spring.cloud.stream.binder.util;
 
 import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
 import com.solace.spring.cloud.stream.binder.properties.SolaceProducerProperties;
-import com.solacesystems.jcsmp.BytesXMLMessage;
+import com.solacesystems.common.util.ByteArray;
+import com.solacesystems.jcsmp.BytesMessage;
 import com.solacesystems.jcsmp.DeliveryMode;
 import com.solacesystems.jcsmp.JCSMPFactory;
+import com.solacesystems.jcsmp.SDTMap;
+import com.solacesystems.jcsmp.TextMessage;
 import com.solacesystems.jcsmp.XMLMessage;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -13,29 +16,29 @@ import org.springframework.integration.support.DefaultMessageBuilderFactory;
 import org.springframework.integration.support.MessageBuilder;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
-import org.springframework.util.MimeTypeUtils;
 import org.springframework.util.SerializationUtils;
-import org.springframework.util.StringUtils;
 
 import java.io.Serializable;
-import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 public class XMLMessageMapper {
 	private static final Log logger = LogFactory.getLog(XMLMessageMapper.class);
 	private static final JCSMPAcknowledgementCallbackFactory ackCallbackFactory = new JCSMPAcknowledgementCallbackFactory();
-	static final Charset DEFAULT_ENCODING = StandardCharsets.UTF_8;
-	static final String MIME_JAVA_SERIALIZED_OBJECT = "application/x-java-serialized-object";
+	static final Set<String> CUSTOM_HEADERS;
+	static final String JAVA_SERIALIZED_OBJECT_HEADER = "isJavaSerializedObject";
+	private static final String HEADER_JAVA_SERIALIZED_OBJECT_HEADER = "_" + JAVA_SERIALIZED_OBJECT_HEADER + "-";
 
-	private MessageWrapperUtils messageWrapperUtils = new MessageWrapperUtils();
-
-	public XMLMessageMapper() {}
-
-	// For Testing
-	XMLMessageMapper(MessageWrapperUtils messageWrapperUtils) {
-		this.messageWrapperUtils = messageWrapperUtils;
+	static {
+		CUSTOM_HEADERS = new HashSet<>();
+		CUSTOM_HEADERS.add(JAVA_SERIALIZED_OBJECT_HEADER);
 	}
 
 	public XMLMessage map(Message<?> message, SolaceProducerProperties producerProperties) {
@@ -56,10 +59,31 @@ public class XMLMessageMapper {
 	}
 
 	XMLMessage map(Message<?> message) {
-		byte[] messageWrapperBytes = SerializationWrapper.serialize(messageWrapperUtils.createMessageWrapper(message));
-		BytesXMLMessage xmlMessage = JCSMPFactory.onlyInstance().createMessage(BytesXMLMessage.class);
-		xmlMessage.writeAttachment(messageWrapperBytes);
-		xmlMessage.setHTTPContentType(MIME_JAVA_SERIALIZED_OBJECT);
+		XMLMessage xmlMessage;
+		Object payload = message.getPayload();
+
+		SDTMap metadata = map(message.getHeaders());
+
+		if (payload instanceof byte[]) {
+			BytesMessage bytesMessage = JCSMPFactory.onlyInstance().createMessage(BytesMessage.class);
+			bytesMessage.setData((byte[]) payload);
+			xmlMessage = bytesMessage;
+		} else if (payload instanceof String) {
+			TextMessage textMessage = JCSMPFactory.onlyInstance().createMessage(TextMessage.class);
+			textMessage.setText((String) payload);
+			xmlMessage = textMessage;
+		} else if (payload instanceof Serializable) {
+			BytesMessage bytesMessage = JCSMPFactory.onlyInstance().createMessage(BytesMessage.class);
+			bytesMessage.setData(rethrowableCall(SerializationUtils::serialize, payload));
+			rethrowableCall(metadata::putBoolean, JAVA_SERIALIZED_OBJECT_HEADER, true);
+			xmlMessage = bytesMessage;
+		} else {
+			throw new SolaceMessageConversionException(String.format(
+					"Invalid payload received. Expected byte[], String, or Serializable. Received: %s",
+					payload.getClass().getName()));
+		}
+
+		xmlMessage.setProperties(metadata);
 		xmlMessage.setDeliveryMode(DeliveryMode.PERSISTENT);
 		return xmlMessage;
 	}
@@ -69,24 +93,36 @@ public class XMLMessageMapper {
 	}
 
 	public Message<?> map(XMLMessage xmlMessage, boolean setRawMessageHeader) throws SolaceMessageConversionException {
-		MessageWrapper messageWrapper = messageWrapperUtils.extractMessageWrapper(xmlMessage);
+		SDTMap metadata = xmlMessage.getProperties();
 
-		Object payload = null;
-		byte[] payloadBytes = messageWrapper.getPayload();
-		String mimeType = messageWrapper.getPayloadMimeType();
+		Object payload;
+		if (xmlMessage instanceof TextMessage) {
+			payload = ((TextMessage) xmlMessage).getText();
+		} else if (xmlMessage instanceof BytesMessage) {
+			payload = ((BytesMessage) xmlMessage).getData();
+			if (metadata != null &&
+					metadata.containsKey(JAVA_SERIALIZED_OBJECT_HEADER) &&
+					rethrowableCall(metadata::getBoolean, JAVA_SERIALIZED_OBJECT_HEADER)) {
+				payload = rethrowableCall(SerializationUtils::deserialize, (byte[]) payload);
+			}
+		} else {
+			String msg = String.format("Invalid message format received. Expected %s or %s. Received: %s",
+					TextMessage.class, BytesMessage.class, xmlMessage.getClass());
+			SolaceMessageConversionException exception = new SolaceMessageConversionException(msg);
+			logger.warn(msg, exception);
+			throw exception;
+		}
 
-		if (mimeType.startsWith(MimeTypeUtils.TEXT_PLAIN.getType())) {
-			String encodingName = messageWrapper.getCharset();
-			Charset encoding = StringUtils.hasText(encodingName) ? Charset.forName(encodingName) : DEFAULT_ENCODING;
-			payload = new String(payloadBytes, encoding);
-
-		} else if (mimeType.equalsIgnoreCase(MIME_JAVA_SERIALIZED_OBJECT)) {
-			payload = SerializationWrapper.deserialize(payloadBytes);
+		if (payload == null) {
+			String msg = String.format("XMLMessage %s has no payload", xmlMessage.getMessageId());
+			SolaceMessageConversionException exception = new SolaceMessageConversionException(msg);
+			logger.warn(msg, exception);
+			throw exception;
 		}
 
 		MessageBuilder<?> builder =  new DefaultMessageBuilderFactory()
-				.withPayload(payload != null ? payload : payloadBytes)
-				.copyHeaders(messageWrapper.getHeaders())
+				.withPayload(payload)
+				.copyHeaders(map(metadata))
 				.setHeader(IntegrationMessageHeaderAccessor.ACKNOWLEDGMENT_CALLBACK, ackCallbackFactory.createCallback(xmlMessage))
 				.setHeaderIfAbsent(IntegrationMessageHeaderAccessor.DELIVERY_ATTEMPT, new AtomicInteger(0));
 
@@ -95,99 +131,68 @@ public class XMLMessageMapper {
 		return builder.build();
 	}
 
-	static class MessageWrapperUtils {
-		MessageWrapper createMessageWrapper(Message<?> message) {
-			Object payload = message.getPayload();
-			String mimeType;
-			byte[] payloadBytes;
-			Charset charset = null;
+	private SDTMap map(MessageHeaders headers) {
+		SDTMap metadata = JCSMPFactory.onlyInstance().createMap();
+		for (Map.Entry<String,Object> header : headers.entrySet()) {
+			Object value = header.getValue();
 
-			if (payload instanceof byte[]) {
-				mimeType = MimeTypeUtils.APPLICATION_OCTET_STREAM_VALUE;
-				payloadBytes = (byte[]) payload;
-			} else if (payload instanceof String) {
-				mimeType = MimeTypeUtils.TEXT_PLAIN_VALUE;
-				charset = DEFAULT_ENCODING;
-				payloadBytes = ((String) payload).getBytes(charset);
-			} else if (payload instanceof Serializable) {
-				mimeType = MIME_JAVA_SERIALIZED_OBJECT;
-				payloadBytes = SerializationWrapper.serialize(payload);
-			} else {
-				throw new SolaceMessageConversionException(String.format(
-						"Invalid payload received. Expected byte[], String, or Serializable. Received: %s",
-						payload.getClass().getName()));
+			if (value instanceof UUID) {
+				value = SerializationUtils.serialize(value);
+				rethrowableCall(metadata::putBoolean, getIsHeaderSerializedMetadataKey(header.getKey()), true);
 			}
 
-			MessageWrapper messageWrapper = new MessageWrapper(message.getHeaders(), payloadBytes, mimeType);
-			if (charset != null) messageWrapper.setCharset(charset.name());
-			return messageWrapper;
+			rethrowableCall(metadata::putObject, header.getKey(), value);
 		}
-
-		MessageWrapper extractMessageWrapper(XMLMessage xmlMessage) throws SolaceMessageConversionException {
-			String messageId = xmlMessage.getMessageId();
-
-			String contentType = xmlMessage.getHTTPContentType();
-			if (contentType == null || !contentType.equalsIgnoreCase(MIME_JAVA_SERIALIZED_OBJECT)) {
-				throw new SolaceMessageConversionException(String.format(
-						"Received Solace message %s with an invalid contentType header. Expected %s. Received %s",
-						messageId, MIME_JAVA_SERIALIZED_OBJECT, contentType));
-			}
-
-			ByteBuffer attachmentByteBuffer = xmlMessage.getAttachmentByteBuffer();
-			if (attachmentByteBuffer == null) {
-				throw new SolaceMessageConversionException(String.format(
-						"Received Solace message %s with an empty attachment.", messageId));
-			}
-
-			Object serializedMessage = SerializationWrapper.deserialize(attachmentByteBuffer.array());
-			if (!(serializedMessage instanceof MessageWrapper)) {
-				String actualClass = serializedMessage != null ? serializedMessage.getClass().getName() : null;
-				throw new SolaceMessageConversionException(String.format(
-						"Received Solace Message %s with an invalid attachment. Expected %s. Received %s",
-						messageId, MessageWrapper.class.getName(), actualClass));
-			}
-
-			return (MessageWrapper) serializedMessage;
-		}
+		return metadata;
 	}
 
-	static class MessageWrapper implements Serializable {
-		private MessageHeaders headers;
-		private byte[] payload;
-		private String payloadMimeType;
-		private String charset;
-
-		MessageWrapper(MessageHeaders headers, byte[] payload, String payloadMimeType) {
-			this.headers = headers;
-			this.payload = payload;
-			this.payloadMimeType = payloadMimeType;
+	private MessageHeaders map(SDTMap metadata) {
+		if (metadata == null) {
+			return new MessageHeaders(Collections.emptyMap());
 		}
 
-		MessageHeaders getHeaders() {
-			return headers;
-		}
+		Map<String,Object> headers = new HashMap<>();
+		metadata.keySet().stream()
+				.filter(h -> !CUSTOM_HEADERS.contains(h))
+				.filter(h -> !h.startsWith(HEADER_JAVA_SERIALIZED_OBJECT_HEADER))
+				.forEach(h -> {
+					Object value = rethrowableCall(metadata::get, h);
 
-		byte[] getPayload() {
-			return payload;
-		}
+					String isSerializedMetadataKey = getIsHeaderSerializedMetadataKey(h);
+					if (metadata.containsKey(isSerializedMetadataKey) &&
+							rethrowableCall(metadata::getBoolean, isSerializedMetadataKey)) {
+						value = SerializationUtils.serialize(rethrowableCall(metadata::getBytes, h));
+					}
 
-		String getPayloadMimeType() {
-			return payloadMimeType;
-		}
+					if (value instanceof ByteArray) {
+						value = ((ByteArray) value).getBuffer();
+					}
 
-		void setCharset(String charset) {
-			this.charset = charset;
-		}
+					headers.put(h, value);
+				});
 
-		String getCharset() {
-			return charset;
-		}
+		return new MessageHeaders(headers);
 	}
 
-	private static class SerializationWrapper {
-		private static byte[] serialize(Object object) throws SolaceMessageConversionException {
+	String getIsHeaderSerializedMetadataKey(String headerName) {
+		return String.format("%s%s", HEADER_JAVA_SERIALIZED_OBJECT_HEADER, headerName);
+	}
+
+	private <T,R> R rethrowableCall(ThrowingFunction<T,R> consumer, T var) {
+		return consumer.apply(var);
+	}
+
+	private <T,U> void rethrowableCall(ThrowingBiConsumer<T,U> consumer, T var0, U var1) {
+		consumer.accept(var0, var1);
+	}
+
+	@FunctionalInterface
+	private interface ThrowingFunction<T,R> extends Function<T,R> {
+
+		@Override
+		default R apply(T t) {
 			try {
-				return SerializationUtils.serialize(object);
+				return applyThrows(t);
 			} catch (Exception e) {
 				SolaceMessageConversionException wrappedException = new SolaceMessageConversionException(e);
 				logger.warn(wrappedException);
@@ -195,14 +200,23 @@ public class XMLMessageMapper {
 			}
 		}
 
-		private static Object deserialize(byte[] bytes) throws SolaceMessageConversionException {
+		R applyThrows(T t) throws Exception;
+	}
+
+	@FunctionalInterface
+	private interface ThrowingBiConsumer<T,U> extends BiConsumer<T,U> {
+
+		@Override
+		default void accept(T t, U u) {
 			try {
-				return SerializationUtils.deserialize(bytes);
+				applyThrows(t, u);
 			} catch (Exception e) {
 				SolaceMessageConversionException wrappedException = new SolaceMessageConversionException(e);
 				logger.warn(wrappedException);
 				throw wrappedException;
 			}
 		}
+
+		void applyThrows(T t, U u) throws Exception;
 	}
 }
