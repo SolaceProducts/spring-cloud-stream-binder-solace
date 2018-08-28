@@ -11,6 +11,7 @@ import com.solacesystems.jcsmp.SDTMap;
 import com.solacesystems.jcsmp.SDTStream;
 import com.solacesystems.jcsmp.StreamMessage;
 import com.solacesystems.jcsmp.TextMessage;
+import com.solacesystems.jcsmp.XMLContentMessage;
 import com.solacesystems.jcsmp.XMLMessage;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -116,18 +117,30 @@ public class XMLMessageMapper {
 		SDTMap metadata = xmlMessage.getProperties();
 
 		Object payload;
-		if (xmlMessage instanceof TextMessage) {
-			payload = ((TextMessage) xmlMessage).getText();
-		} else if (xmlMessage instanceof BytesMessage) {
+		if (xmlMessage instanceof BytesMessage) {
 			payload = ((BytesMessage) xmlMessage).getData();
 			if (metadata != null &&
 					metadata.containsKey(JAVA_SERIALIZED_OBJECT_HEADER) &&
 					rethrowableCall(metadata::getBoolean, JAVA_SERIALIZED_OBJECT_HEADER)) {
 				payload = rethrowableCall(SerializationUtils::deserialize, (byte[]) payload);
 			}
+		} else if (xmlMessage instanceof TextMessage) {
+			payload = ((TextMessage) xmlMessage).getText();
+		} else if (xmlMessage instanceof MapMessage) {
+			payload = ((MapMessage) xmlMessage).getMap();
+		} else if (xmlMessage instanceof StreamMessage) {
+			payload = ((StreamMessage) xmlMessage).getStream();
+		} else if (xmlMessage instanceof XMLContentMessage) {
+			payload = ((XMLContentMessage) xmlMessage).getXMLContent();
 		} else {
-			String msg = String.format("Invalid message format received. Expected %s or %s. Received: %s",
-					TextMessage.class, BytesMessage.class, xmlMessage.getClass());
+			String msg = String.format("Invalid message format received. Expected %s. Received: %s",
+					String.join(", ",
+							BytesMessage.class.getSimpleName(),
+							TextMessage.class.getSimpleName(),
+							MapMessage.class.getSimpleName(),
+							StreamMessage.class.getSimpleName(),
+							XMLContentMessage.class.getSimpleName()
+					), xmlMessage.getClass());
 			SolaceMessageConversionException exception = new SolaceMessageConversionException(msg);
 			logger.warn(msg, exception);
 			throw exception;
