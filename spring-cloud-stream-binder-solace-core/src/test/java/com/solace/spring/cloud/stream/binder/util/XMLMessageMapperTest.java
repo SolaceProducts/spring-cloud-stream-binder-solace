@@ -5,8 +5,11 @@ import com.solace.spring.cloud.stream.binder.properties.SolaceProducerProperties
 import com.solacesystems.jcsmp.BytesMessage;
 import com.solacesystems.jcsmp.DeliveryMode;
 import com.solacesystems.jcsmp.JCSMPFactory;
+import com.solacesystems.jcsmp.MapMessage;
 import com.solacesystems.jcsmp.SDTException;
 import com.solacesystems.jcsmp.SDTMap;
+import com.solacesystems.jcsmp.SDTStream;
+import com.solacesystems.jcsmp.StreamMessage;
 import com.solacesystems.jcsmp.TextMessage;
 import com.solacesystems.jcsmp.XMLMessage;
 import org.hamcrest.CoreMatchers;
@@ -23,6 +26,7 @@ import org.springframework.messaging.MessageHeaders;
 import org.springframework.util.SerializationUtils;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -36,7 +40,22 @@ public class XMLMessageMapperTest {
 	}
 
 	@Test
-	public void testMapSpringMessageToXMLMessage() throws Exception {
+	public void testMapSpringMessageToXMLMessage_ByteArray() throws Exception {
+		Message<?> testSpringMessage = new DefaultMessageBuilderFactory()
+				.withPayload("testPayload".getBytes(StandardCharsets.UTF_8))
+				.setHeader("test-header-1", "test-header-val-1")
+				.setHeader("test-header-2", "test-header-val-2")
+				.build();
+
+		XMLMessage xmlMessage = xmlMessageMapper.map(testSpringMessage);
+
+		Assert.assertThat(xmlMessage, CoreMatchers.instanceOf(BytesMessage.class));
+		Assert.assertEquals(testSpringMessage.getPayload(), ((BytesMessage) xmlMessage).getData());
+		validateXMLMessage(xmlMessage, testSpringMessage.getHeaders());
+	}
+
+	@Test
+	public void testMapSpringMessageToXMLMessage_String() throws Exception {
 		Message<?> testSpringMessage = new DefaultMessageBuilderFactory()
 				.withPayload("testPayload")
 				.setHeader("test-header-1", "test-header-val-1")
@@ -47,19 +66,72 @@ public class XMLMessageMapperTest {
 
 		Assert.assertThat(xmlMessage, CoreMatchers.instanceOf(TextMessage.class));
 		Assert.assertEquals(testSpringMessage.getPayload(), ((TextMessage) xmlMessage).getText());
-		Assert.assertEquals(DeliveryMode.PERSISTENT, xmlMessage.getDeliveryMode());
+		validateXMLMessage(xmlMessage, testSpringMessage.getHeaders());
+	}
 
-		SDTMap metadata = xmlMessage.getProperties();
+	@Test
+	public void testMapSpringMessageToXMLMessage_Serializable() throws Exception {
+		Message<?> testSpringMessage = new DefaultMessageBuilderFactory()
+				.withPayload(new SerializableFoo("abc123", "HOOPLA!"))
+				.setHeader("test-header-1", "test-header-val-1")
+				.setHeader("test-header-2", "test-header-val-2")
+				.build();
 
-		for (Map.Entry<String,Object> header : testSpringMessage.getHeaders().entrySet()) {
-			Assert.assertTrue(metadata.containsKey(header.getKey()));
+		XMLMessage xmlMessage = xmlMessageMapper.map(testSpringMessage);
 
-			Object actualValue = metadata.get(header.getKey());
-			if (metadata.containsKey(xmlMessageMapper.getIsHeaderSerializedMetadataKey(header.getKey()))) {
-				actualValue = SerializationUtils.deserialize(metadata.getBytes(header.getKey()));
-			}
-			Assert.assertEquals(header.getValue(), actualValue);
-		}
+		Assert.assertThat(xmlMessage, CoreMatchers.instanceOf(BytesMessage.class));
+		Assert.assertEquals(testSpringMessage.getPayload(),
+				SerializationUtils.deserialize(((BytesMessage) xmlMessage).getData()));
+		Assert.assertThat(xmlMessage.getProperties().keySet(),
+				CoreMatchers.hasItem(XMLMessageMapper.JAVA_SERIALIZED_OBJECT_HEADER));
+		Assert.assertEquals(true, xmlMessage.getProperties().getBoolean(XMLMessageMapper.JAVA_SERIALIZED_OBJECT_HEADER));
+		validateXMLMessage(xmlMessage, testSpringMessage.getHeaders());
+	}
+
+	@Test
+	public void testMapSpringMessageToXMLMessage_STDStream() throws Exception {
+		SDTStream sdtStream = JCSMPFactory.onlyInstance().createStream();
+		sdtStream.writeBoolean(true);
+		sdtStream.writeCharacter('s');
+		sdtStream.writeMap(JCSMPFactory.onlyInstance().createMap());
+		sdtStream.writeStream(JCSMPFactory.onlyInstance().createStream());
+		Message<?> testSpringMessage = new DefaultMessageBuilderFactory()
+				.withPayload(sdtStream)
+				.setHeader("test-header-1", "test-header-val-1")
+				.setHeader("test-header-2", "test-header-val-2")
+				.build();
+
+		XMLMessage xmlMessage = xmlMessageMapper.map(testSpringMessage);
+
+		Assert.assertThat(xmlMessage, CoreMatchers.instanceOf(StreamMessage.class));
+		Assert.assertEquals(testSpringMessage.getPayload(), ((StreamMessage) xmlMessage).getStream());
+		validateXMLMessage(xmlMessage, testSpringMessage.getHeaders());
+	}
+
+	@Test
+	public void testMapSpringMessageToXMLMessage_STDMap() throws Exception {
+		SDTMap sdtMap = JCSMPFactory.onlyInstance().createMap();
+		sdtMap.putBoolean("a", true);
+		sdtMap.putCharacter("b", 's');
+		sdtMap.putMap("c", JCSMPFactory.onlyInstance().createMap());
+		sdtMap.putStream("d", JCSMPFactory.onlyInstance().createStream());
+		Message<?> testSpringMessage = new DefaultMessageBuilderFactory()
+				.withPayload(sdtMap)
+				.setHeader("test-header-1", "test-header-val-1")
+				.setHeader("test-header-2", "test-header-val-2")
+				.build();
+
+		XMLMessage xmlMessage = xmlMessageMapper.map(testSpringMessage);
+
+		Assert.assertThat(xmlMessage, CoreMatchers.instanceOf(MapMessage.class));
+		Assert.assertEquals(testSpringMessage.getPayload(), ((MapMessage) xmlMessage).getMap());
+		validateXMLMessage(xmlMessage, testSpringMessage.getHeaders());
+	}
+
+	@Test(expected = SolaceMessageConversionException.class)
+	public void testFailMapSpringMessageToXMLMessage_InvalidPayload() {
+		Message<?> testSpringMessage = new DefaultMessageBuilderFactory().withPayload(new Object()).build();
+		xmlMessageMapper.map(testSpringMessage);
 	}
 
 	@Test
@@ -75,7 +147,7 @@ public class XMLMessageMapperTest {
 	}
 
 	@Test
-	public void testMapProducerSpringMessageToXMLMessageWithProperties() {
+	public void testMapProducerSpringMessageToXMLMessage_WithProperties() {
 		String testPayload = "testPayload";
 		Message<?> testSpringMessage = new DefaultMessageBuilderFactory().withPayload(testPayload).build();
 		SolaceProducerProperties producerProperties = new SolaceProducerProperties();
@@ -101,7 +173,7 @@ public class XMLMessageMapperTest {
 	}
 
 	@Test
-	public void testMapConsumerSpringMessageToXMLMessageWithProperties() {
+	public void testMapConsumerSpringMessageToXMLMessage_WithProperties() {
 		String testPayload = "testPayload";
 		Message<?> testSpringMessage = new DefaultMessageBuilderFactory().withPayload(testPayload).build();
 		SolaceConsumerProperties consumerProperties = new SolaceConsumerProperties();
@@ -114,7 +186,7 @@ public class XMLMessageMapperTest {
 	}
 
 	@Test
-	public void testMapXMLMessageToSpringMessageByteArray() throws Exception {
+	public void testMapXMLMessageToSpringMessage_ByteArray() throws Exception {
 		BytesMessage xmlMessage = JCSMPFactory.onlyInstance().createMessage(BytesMessage.class);
 		xmlMessage.setData("testPayload".getBytes(StandardCharsets.UTF_8));
 		SDTMap metadata = JCSMPFactory.onlyInstance().createMap();
@@ -131,7 +203,7 @@ public class XMLMessageMapperTest {
 	}
 
 	@Test
-	public void testMapXMLMessageToSpringMessageString() throws Exception {
+	public void testMapXMLMessageToSpringMessage_String() throws Exception {
 		TextMessage xmlMessage = JCSMPFactory.onlyInstance().createMessage(TextMessage.class);
 		xmlMessage.setText("testPayload");
 		SDTMap metadata = JCSMPFactory.onlyInstance().createMap();
@@ -148,7 +220,7 @@ public class XMLMessageMapperTest {
 	}
 
 	@Test
-	public void testMapXMLMessageToSpringMessageSerializable() throws Exception {
+	public void testMapXMLMessageToSpringMessage_Serializable() throws Exception {
 		BytesMessage xmlMessage = JCSMPFactory.onlyInstance().createMessage(BytesMessage.class);
 		SerializableFoo expectedPayload = new SerializableFoo("abc123", "HOOPLA!!");
 		xmlMessage.setData(SerializationUtils.serialize(expectedPayload));
@@ -167,7 +239,7 @@ public class XMLMessageMapperTest {
 	}
 
 	@Test
-	public void testMapXMLMessageToSpringMessageWithRawMessageHeader() throws Exception {
+	public void testMapXMLMessageToSpringMessage_WithRawMessageHeader() throws Exception {
 		BytesMessage xmlMessage = JCSMPFactory.onlyInstance().createMessage(BytesMessage.class);
 		SerializableFoo expectedPayload = new SerializableFoo("abc123", "HOOPLA!!");
 		xmlMessage.setData(SerializationUtils.serialize(expectedPayload));
@@ -188,9 +260,57 @@ public class XMLMessageMapperTest {
 	}
 
 	@Test(expected = SolaceMessageConversionException.class)
-	public void testFailMapXMLMessageToSpringMessageWithNullPayload() {
+	public void testFailMapXMLMessageToSpringMessage_WithNullPayload() {
 		BytesMessage xmlMessage = JCSMPFactory.onlyInstance().createMessage(BytesMessage.class);
 		xmlMessageMapper.map(xmlMessage);
+	}
+
+	@Test
+	public void testMapMessageHeadersToSDTMap_Serializable() throws Exception {
+		String key = "a";
+		SerializableFoo value = new SerializableFoo("abc123", "HOOPLA!");
+		Map<String,Object> headers = new HashMap<>();
+		headers.put(key, value);
+
+		SDTMap sdtMap = xmlMessageMapper.map(new MessageHeaders(headers));
+
+		Assert.assertThat(sdtMap.keySet(), CoreMatchers.hasItem(key));
+		Assert.assertThat(sdtMap.keySet(), CoreMatchers.hasItem(xmlMessageMapper.getIsHeaderSerializedMetadataKey(key)));
+		Assert.assertEquals(value, SerializationUtils.deserialize(sdtMap.getBytes(key)));
+		Assert.assertEquals(true, sdtMap.getBoolean(xmlMessageMapper.getIsHeaderSerializedMetadataKey(key)));
+	}
+
+	@Test
+	public void testMapSDTMapToMessageHeaders_Serializable() throws Exception {
+		String key = "a";
+		SerializableFoo value = new SerializableFoo("abc123", "HOOPLA!");
+		SDTMap sdtMap = JCSMPFactory.onlyInstance().createMap();
+		sdtMap.putObject(key, SerializationUtils.serialize(value));
+		sdtMap.putBoolean(xmlMessageMapper.getIsHeaderSerializedMetadataKey(key), true);
+
+		MessageHeaders messageHeaders = xmlMessageMapper.map(sdtMap);
+
+		Assert.assertThat(messageHeaders.keySet(), CoreMatchers.hasItem(key));
+		Assert.assertThat(messageHeaders.keySet(),
+				CoreMatchers.not(CoreMatchers.hasItem(xmlMessageMapper.getIsHeaderSerializedMetadataKey(key))));
+		Assert.assertEquals(value, messageHeaders.get(key));
+		Assert.assertNull(messageHeaders.get(xmlMessageMapper.getIsHeaderSerializedMetadataKey(key)));
+	}
+
+	private void validateXMLMessage(XMLMessage xmlMessage, MessageHeaders expectedHeaders) throws Exception {
+		Assert.assertEquals(DeliveryMode.PERSISTENT, xmlMessage.getDeliveryMode());
+
+		SDTMap metadata = xmlMessage.getProperties();
+
+		for (Map.Entry<String,Object> header : expectedHeaders.entrySet()) {
+			Assert.assertTrue(metadata.containsKey(header.getKey()));
+
+			Object actualValue = metadata.get(header.getKey());
+			if (metadata.containsKey(xmlMessageMapper.getIsHeaderSerializedMetadataKey(header.getKey()))) {
+				actualValue = SerializationUtils.deserialize(metadata.getBytes(header.getKey()));
+			}
+			Assert.assertEquals(header.getValue(), actualValue);
+		}
 	}
 
 	private void validateSpringMessage(Message<?> message, SDTMap expectedHeaders) throws SDTException {

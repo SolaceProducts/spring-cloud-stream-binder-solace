@@ -6,7 +6,10 @@ import com.solacesystems.common.util.ByteArray;
 import com.solacesystems.jcsmp.BytesMessage;
 import com.solacesystems.jcsmp.DeliveryMode;
 import com.solacesystems.jcsmp.JCSMPFactory;
+import com.solacesystems.jcsmp.MapMessage;
 import com.solacesystems.jcsmp.SDTMap;
+import com.solacesystems.jcsmp.SDTStream;
+import com.solacesystems.jcsmp.StreamMessage;
 import com.solacesystems.jcsmp.TextMessage;
 import com.solacesystems.jcsmp.XMLMessage;
 import org.apache.commons.logging.Log;
@@ -72,15 +75,32 @@ public class XMLMessageMapper {
 			TextMessage textMessage = JCSMPFactory.onlyInstance().createMessage(TextMessage.class);
 			textMessage.setText((String) payload);
 			xmlMessage = textMessage;
+		} else if (payload instanceof SDTStream) {
+			StreamMessage streamMessage = JCSMPFactory.onlyInstance().createMessage(StreamMessage.class);
+			streamMessage.setStream((SDTStream) payload);
+			xmlMessage = streamMessage;
+		} else if (payload instanceof SDTMap) {
+			MapMessage mapMessage = JCSMPFactory.onlyInstance().createMessage(MapMessage.class);
+			mapMessage.setMap((SDTMap) payload);
+			xmlMessage = mapMessage;
 		} else if (payload instanceof Serializable) {
 			BytesMessage bytesMessage = JCSMPFactory.onlyInstance().createMessage(BytesMessage.class);
 			bytesMessage.setData(rethrowableCall(SerializationUtils::serialize, payload));
 			rethrowableCall(metadata::putBoolean, JAVA_SERIALIZED_OBJECT_HEADER, true);
 			xmlMessage = bytesMessage;
 		} else {
-			throw new SolaceMessageConversionException(String.format(
-					"Invalid payload received. Expected byte[], String, or Serializable. Received: %s",
-					payload.getClass().getName()));
+			String msg = String.format(
+					"Invalid payload received. Expected %s. Received: %s",
+					String.join(", ",
+							byte[].class.getSimpleName(),
+							String.class.getSimpleName(),
+							SDTStream.class.getSimpleName(),
+							SDTMap.class.getSimpleName(),
+							Serializable.class.getSimpleName()
+					), payload.getClass().getName());
+			SolaceMessageConversionException exception = new SolaceMessageConversionException(msg);
+			logger.warn(msg, exception);
+			throw exception;
 		}
 
 		xmlMessage.setProperties(metadata);
@@ -131,7 +151,7 @@ public class XMLMessageMapper {
 		return builder.build();
 	}
 
-	private SDTMap map(MessageHeaders headers) {
+	SDTMap map(MessageHeaders headers) {
 		SDTMap metadata = JCSMPFactory.onlyInstance().createMap();
 		for (Map.Entry<String,Object> header : headers.entrySet()) {
 			Object value = header.getValue();
@@ -141,12 +161,12 @@ public class XMLMessageMapper {
 				rethrowableCall(metadata::putBoolean, getIsHeaderSerializedMetadataKey(header.getKey()), true);
 			}
 
-			rethrowableCall(metadata::putObject, header.getKey(), value);
+			addSDTMapObject(metadata, header.getKey(), value);
 		}
 		return metadata;
 	}
 
-	private MessageHeaders map(SDTMap metadata) {
+	MessageHeaders map(SDTMap metadata) {
 		if (metadata == null) {
 			return new MessageHeaders(Collections.emptyMap());
 		}
@@ -161,7 +181,7 @@ public class XMLMessageMapper {
 					String isSerializedMetadataKey = getIsHeaderSerializedMetadataKey(h);
 					if (metadata.containsKey(isSerializedMetadataKey) &&
 							rethrowableCall(metadata::getBoolean, isSerializedMetadataKey)) {
-						value = SerializationUtils.serialize(rethrowableCall(metadata::getBytes, h));
+						value = SerializationUtils.deserialize(rethrowableCall(metadata::getBytes, h));
 					}
 
 					if (value instanceof ByteArray) {
@@ -176,6 +196,25 @@ public class XMLMessageMapper {
 
 	String getIsHeaderSerializedMetadataKey(String headerName) {
 		return String.format("%s%s", HEADER_JAVA_SERIALIZED_OBJECT_HEADER, headerName);
+	}
+
+
+	/**
+	 * Wrapper function which converts Serializable objects to byte[] if they aren't naturally supported by the SDTMap
+	 */
+	private void addSDTMapObject(SDTMap sdtMap, String key, Object object) throws SolaceMessageConversionException {
+		rethrowableCall((k, o) -> {
+			try {
+				sdtMap.putObject(k, o);
+			} catch (IllegalArgumentException e) {
+				if (o instanceof Serializable) {
+					rethrowableCall(sdtMap::putBoolean, getIsHeaderSerializedMetadataKey(k), true);
+					rethrowableCall(sdtMap::putBytes, k, rethrowableCall(SerializationUtils::serialize, o));
+				} else {
+					throw e;
+				}
+			}
+		}, key, object);
 	}
 
 	private <T,R> R rethrowableCall(ThrowingFunction<T,R> consumer, T var) {
