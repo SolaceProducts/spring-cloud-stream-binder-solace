@@ -55,7 +55,7 @@ public class SolaceQueueProvisioner
 		Map<String,String[]> requiredGroupsExtraSubs = properties.getExtension().getQueueAdditionalSubscriptions();
 
 		for (String groupName : requiredGroups) {
-			String queueName = SolaceProvisioningUtil.getQueueName(topicName, groupName, properties.getExtension());
+			String queueName = SolaceProvisioningUtil.getQueueName(name, groupName, properties.getExtension());
 			EndpointProperties endpointProperties = SolaceProvisioningUtil.getEndpointProperties(properties.getExtension());
 			logger.info(String.format("Creating durable queue %s for required consumer group %s", queueName, groupName));
 			Queue queue = provisionQueue(queueName, true, endpointProperties);
@@ -96,7 +96,7 @@ public class SolaceQueueProvisioner
 		String topicName = SolaceProvisioningUtil.getTopicName(name, properties.getExtension());
 		boolean isAnonQueue = SolaceProvisioningUtil.isAnonQueue(group);
 		boolean isDurableQueue = SolaceProvisioningUtil.isDurableQueue(group);
-		String queueName = SolaceProvisioningUtil.getQueueName(topicName, group, properties.getExtension(), isAnonQueue);
+		String queueName = SolaceProvisioningUtil.getQueueName(name, group, properties.getExtension(), isAnonQueue);
 
 		logger.info(isAnonQueue ?
 				String.format("Creating anonymous (temporary) queue %s", queueName) :

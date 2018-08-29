@@ -74,8 +74,7 @@ public class SolaceTestBinder
 
 	private void captureConsumerResources(String name, String group, SolaceConsumerProperties consumerProperties) {
 		boolean isAnonQueue = SolaceProvisioningUtil.isAnonQueue(group);
-		String topicName = SolaceProvisioningUtil.getTopicName(name, consumerProperties);
-		String queueName = SolaceProvisioningUtil.getQueueName(topicName, group, consumerProperties, isAnonQueue);
+		String queueName = SolaceProvisioningUtil.getQueueName(name, group, consumerProperties, isAnonQueue);
 
 		if (!isAnonQueue) {
 			queues.add(queueName);
@@ -87,8 +86,7 @@ public class SolaceTestBinder
 	}
 
 	private void captureProducerResources(String name, String group, SolaceProducerProperties producerProperties) {
-		String topicName = SolaceProvisioningUtil.getTopicName(name, producerProperties);
-		String queueName = SolaceProvisioningUtil.getQueueName(topicName, group, producerProperties);
+		String queueName = SolaceProvisioningUtil.getQueueName(name, group, producerProperties);
 		queues.add(queueName);
 	}
 
