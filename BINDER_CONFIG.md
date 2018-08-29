@@ -59,7 +59,7 @@ See [SolaceConsumerProperties](spring-cloud-stream-binder-solace-core\src\main\j
     </dd>
     <dt>queueAdditionalSubscriptions</dt>
     <dd>
-        <p>A comma-separated list of additional topic subscriptions to be applied on the consumer group queue.</p>
+        <p>An array of additional topic subscriptions to be applied on the consumer group queue.</p>
         <p>These subscriptions may also contain wildcards.</p>
         <p>The prefix property is not applied on these subscriptions.</p>
         <p>Default: String[0]</p>
@@ -175,7 +175,7 @@ See [SolaceProducerProperties](spring-cloud-stream-binder-solace-core\src\main\j
     </dd>
     <dt>queueAdditionalSubscriptions</dt>
     <dd>
-        <p>A mapping of required consumer groups to comma-separated lists of additional topic subscriptions to be applied on each consumer group's queue.</p>
+        <p>A mapping of required consumer groups to arrays of additional topic subscriptions to be applied on each consumer group's queue.</p>
         <p>These subscriptions may also contain wildcards.</p>
         <p>The prefix property is not applied on these subscriptions.</p>
         <p>Default: Empty Map&lt;String,String[]&gt;</p>
