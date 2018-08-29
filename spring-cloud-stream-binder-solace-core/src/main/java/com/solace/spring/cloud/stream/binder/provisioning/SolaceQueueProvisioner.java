@@ -20,14 +20,18 @@ import org.springframework.cloud.stream.provisioning.ProducerDestination;
 import org.springframework.cloud.stream.provisioning.ProvisioningException;
 import org.springframework.cloud.stream.provisioning.ProvisioningProvider;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class SolaceQueueProvisioner
 		implements ProvisioningProvider<ExtendedConsumerProperties<SolaceConsumerProperties>,ExtendedProducerProperties<SolaceProducerProperties>> {
 
 	private JCSMPSession jcsmpSession;
-	private Map<String,String> queueToTopicBindings = new HashMap<>();
+	private Map<String, Set<String>> queueToTopicBindings = new HashMap<>();
 
 	private static final Log logger = LogFactory.getLog(SolaceQueueProvisioner.class);
 
@@ -47,14 +51,33 @@ public class SolaceQueueProvisioner
 
 		String topicName = SolaceProvisioningUtil.getTopicName(name, properties.getExtension());
 
-		for (String groupName : properties.getRequiredGroups()) {
+		Set<String> requiredGroups = new HashSet<>(Arrays.asList(properties.getRequiredGroups()));
+		Map<String,String[]> requiredGroupsExtraSubs = properties.getExtension().getQueueAdditionalSubscriptions();
+
+		for (String groupName : requiredGroups) {
 			String queueName = SolaceProvisioningUtil.getQueueName(topicName, groupName, properties.getExtension());
 			EndpointProperties endpointProperties = SolaceProvisioningUtil.getEndpointProperties(properties.getExtension());
 			logger.info(String.format("Creating durable queue %s for required consumer group %s", queueName, groupName));
 			Queue queue = provisionQueue(queueName, true, endpointProperties);
 
 			addSubscriptionToQueue(queue, topicName);
-			queueToTopicBindings.put(queue.getName(), topicName);
+			trackQueueToTopicBinding(queue.getName(), topicName);
+
+			for (String extraTopic : requiredGroupsExtraSubs.getOrDefault(groupName, new String[0])) {
+				addSubscriptionToQueue(queue, extraTopic);
+				trackQueueToTopicBinding(queue.getName(), extraTopic);
+			}
+		}
+
+		Set<String> ignoredExtraSubs = requiredGroupsExtraSubs.keySet()
+				.stream()
+				.filter(g -> !requiredGroups.contains(g))
+				.collect(Collectors.toSet());
+
+		if (ignoredExtraSubs.size() > 0) {
+			logger.warn(String.format(
+					"Groups [%s] are not required groups. The additional subscriptions defined for them were ignored...",
+					String.join(", ", ignoredExtraSubs)));
 		}
 
 		return new SolaceProducerDestination(topicName);
@@ -80,7 +103,11 @@ public class SolaceQueueProvisioner
 				String.format("Creating %s queue %s for consumer group %s", isDurableQueue ? "durable" : "temporary", queueName, group));
 		EndpointProperties endpointProperties = SolaceProvisioningUtil.getEndpointProperties(properties.getExtension());
 		Queue queue = provisionQueue(queueName, isDurableQueue, endpointProperties);
-		queueToTopicBindings.put(queue.getName(), topicName);
+		trackQueueToTopicBinding(queue.getName(), topicName);
+
+		for (String additionalSubscription : properties.getExtension().getQueueAdditionalSubscriptions()) {
+			trackQueueToTopicBinding(queue.getName(), additionalSubscription);
+		}
 
 		if (properties.getExtension().isAutoBindDmq()) {
 			provisionDMQ(queueName, properties.getExtension());
@@ -142,7 +169,14 @@ public class SolaceQueueProvisioner
 		}
 	}
 
-	public String getBoundTopicNameForQueue(String queueName) {
+	public Set<String> getTrackedTopicsForQueue(String queueName) {
 		return queueToTopicBindings.get(queueName);
+	}
+
+	private void trackQueueToTopicBinding(String queueName, String topicName) {
+		if (! queueToTopicBindings.containsKey(queueName)) {
+			queueToTopicBindings.put(queueName, new HashSet<>());
+		}
+		queueToTopicBindings.get(queueName).add(topicName);
 	}
 }

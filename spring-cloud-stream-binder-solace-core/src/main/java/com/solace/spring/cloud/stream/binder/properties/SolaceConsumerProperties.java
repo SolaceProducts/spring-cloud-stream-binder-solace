@@ -7,6 +7,8 @@ public class SolaceConsumerProperties extends SolaceCommonProperties {
 	private int polledConsumerWaitTimeInMillis = 100;
 	private boolean requeueRejected = false;
 
+	private String[] queueAdditionalSubscriptions = new String[0];
+
 	// DMQ Properties ---------
 	private boolean autoBindDmq = false;
 	private int dmqAccessType = EndpointProperties.ACCESSTYPE_NONEXCLUSIVE;
@@ -41,6 +43,14 @@ public class SolaceConsumerProperties extends SolaceCommonProperties {
 
 	public void setRequeueRejected(boolean requeueRejected) {
 		this.requeueRejected = requeueRejected;
+	}
+
+	public String[] getQueueAdditionalSubscriptions() {
+		return queueAdditionalSubscriptions;
+	}
+
+	public void setQueueAdditionalSubscriptions(String[] queueAdditionalSubscriptions) {
+		this.queueAdditionalSubscriptions = queueAdditionalSubscriptions;
 	}
 
 	public boolean isAutoBindDmq() {

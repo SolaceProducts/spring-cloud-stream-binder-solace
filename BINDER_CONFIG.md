@@ -57,6 +57,13 @@ See [SolaceConsumerProperties](spring-cloud-stream-binder-solace-core\src\main\j
         <p>Whether the consumer group queue respects Message TTL.</p>
         <p>Default: null</p>
     </dd>
+    <dt>queueAdditionalSubscriptions</dt>
+    <dd>
+        <p>A comma-separated list of additional topic subscriptions to be applied on the consumer group queue.</p>
+        <p>These subscriptions may also contain wildcards.</p>
+        <p>The prefix property is not applied on these subscriptions.</p>
+        <p>Default: String[0]</p>
+    </dd>
     <dt>anonymousGroupPostfix</dt>
     <dd>
         <p>Naming postfix for the anonymous consumer group queue.</p>
@@ -165,6 +172,13 @@ See [SolaceProducerProperties](spring-cloud-stream-binder-solace-core\src\main\j
     <dd>
         <p>Whether the required consumer group queue respects Message TTL.</p>
         <p>Default: null</p>
+    </dd>
+    <dt>queueAdditionalSubscriptions</dt>
+    <dd>
+        <p>A mapping of required consumer groups to comma-separated lists of additional topic subscriptions to be applied on each consumer group's queue.</p>
+        <p>These subscriptions may also contain wildcards.</p>
+        <p>The prefix property is not applied on these subscriptions.</p>
+        <p>Default: Empty Map&lt;String,String[]&gt;</p>
     </dd>
     <dt>msgTtl</dt>
     <dd>

@@ -36,6 +36,9 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.util.MimeTypeUtils;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -282,5 +285,104 @@ public class SolaceBinderTest
 		} finally {
 			jcsmpSession.deprovision(dmq, JCSMPSession.FLAG_IGNORE_DOES_NOT_EXIST);
 		}
+	}
+
+	@Test
+	public void testConsumerAdditionalSubscriptions() throws Exception {
+		SolaceTestBinder binder = getBinder();
+
+		DirectChannel moduleOutputChannel0 = createBindableChannel("output0", new BindingProperties());
+		DirectChannel moduleOutputChannel1 = createBindableChannel("output1", new BindingProperties());
+		DirectChannel moduleInputChannel = createBindableChannel("input", new BindingProperties());
+
+		String destination0 = String.format("foo%s0", getDestinationNameDelimiter());
+		String destination1 = "some-destl";
+		String wildcardDestination1 = destination1.substring(0, destination1.length() - 1) + "*";
+
+		Binding<MessageChannel> producerBinding0 = binder.bindProducer(
+				destination0, moduleOutputChannel0, createProducerProperties());
+		Binding<MessageChannel> producerBinding1 = binder.bindProducer(
+				destination1, moduleOutputChannel1, createProducerProperties());
+
+		ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties = createConsumerProperties();
+		consumerProperties.getExtension()
+				.setQueueAdditionalSubscriptions(new String[]{wildcardDestination1, "some-random-sub"});
+
+		Binding<MessageChannel> consumerBinding = binder.bindConsumer(
+				destination0, "testConsumerAdditionalSubscriptions", moduleInputChannel, consumerProperties);
+
+		Message<?> message = MessageBuilder.withPayload("foo".getBytes())
+				.setHeader(MessageHeaders.CONTENT_TYPE, MimeTypeUtils.TEXT_PLAIN_VALUE)
+				.build();
+
+		binderBindUnbindLatency();
+
+		final CountDownLatch latch = new CountDownLatch(2);
+		moduleInputChannel.subscribe(message1 -> {
+			logger.info(String.format("Received message %s", message1));
+			latch.countDown();
+		});
+
+		logger.info(String.format("Sending message to destination %s: %s", destination0, message));
+		moduleOutputChannel0.send(message);
+
+		logger.info(String.format("Sending message to destination %s: %s", destination1, message));
+		moduleOutputChannel1.send(message);
+
+		assertThat(latch.await(10, TimeUnit.SECONDS)).isTrue();
+		producerBinding0.unbind();
+		producerBinding1.unbind();
+		consumerBinding.unbind();
+	}
+
+	@Test
+	public void testProducerAdditionalSubscriptions() throws Exception {
+		SolaceTestBinder binder = getBinder();
+
+		DirectChannel moduleOutputChannel0 = createBindableChannel("output0", new BindingProperties());
+		DirectChannel moduleOutputChannel1 = createBindableChannel("output1", new BindingProperties());
+		DirectChannel moduleInputChannel = createBindableChannel("input", new BindingProperties());
+
+		String destination0 = String.format("foo%s0", getDestinationNameDelimiter());
+		String destination1 = "some-destl";
+		String wildcardDestination1 = destination1.substring(0, destination1.length() - 1) + "*";
+		String group0 = "testProducerAdditionalSubscriptions";
+
+		ExtendedProducerProperties<SolaceProducerProperties> producerProperties = createProducerProperties();
+		Map<String,String[]> groupsAdditionalSubs = new HashMap<>();
+		groupsAdditionalSubs.put(group0, new String[]{wildcardDestination1});
+		producerProperties.setRequiredGroups(group0);
+		producerProperties.getExtension().setQueueAdditionalSubscriptions(groupsAdditionalSubs);
+
+		Binding<MessageChannel> producerBinding0 = binder.bindProducer(
+				destination0, moduleOutputChannel0, producerProperties);
+		Binding<MessageChannel> producerBinding1 = binder.bindProducer(
+				destination1, moduleOutputChannel1, createProducerProperties());
+
+		Binding<MessageChannel> consumerBinding = binder.bindConsumer(
+				destination0, group0, moduleInputChannel, createConsumerProperties());
+
+		Message<?> message = MessageBuilder.withPayload("foo".getBytes())
+				.setHeader(MessageHeaders.CONTENT_TYPE, MimeTypeUtils.TEXT_PLAIN_VALUE)
+				.build();
+
+		binderBindUnbindLatency();
+
+		final CountDownLatch latch = new CountDownLatch(2);
+		moduleInputChannel.subscribe(message1 -> {
+			logger.info(String.format("Received message %s", message1));
+			latch.countDown();
+		});
+
+		logger.info(String.format("Sending message to destination %s: %s", destination0, message));
+		moduleOutputChannel0.send(message);
+
+		logger.info(String.format("Sending message to destination %s: %s", destination1, message));
+		moduleOutputChannel1.send(message);
+
+		assertThat(latch.await(10, TimeUnit.SECONDS)).isTrue();
+		producerBinding0.unbind();
+		producerBinding1.unbind();
+		consumerBinding.unbind();
 	}
 }

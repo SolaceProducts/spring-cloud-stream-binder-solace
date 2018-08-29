@@ -169,8 +169,9 @@ public class SolaceMessageChannelBinder
 	*/
 	private Consumer<Queue> getConsumerPostStart() {
 		return (queue) -> {
-			String topicName = provisioningProvider.getBoundTopicNameForQueue(queue.getName());
-			provisioningProvider.addSubscriptionToQueue(queue, topicName);
+			for (String topic : provisioningProvider.getTrackedTopicsForQueue(queue.getName())) {
+				provisioningProvider.addSubscriptionToQueue(queue, topic);
+			}
 		};
 	}
 }
