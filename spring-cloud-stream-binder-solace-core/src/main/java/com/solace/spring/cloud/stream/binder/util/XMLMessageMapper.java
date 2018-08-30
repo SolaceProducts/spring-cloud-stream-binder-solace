@@ -36,13 +36,16 @@ import java.util.function.Function;
 public class XMLMessageMapper {
 	private static final Log logger = LogFactory.getLog(XMLMessageMapper.class);
 	private static final JCSMPAcknowledgementCallbackFactory ackCallbackFactory = new JCSMPAcknowledgementCallbackFactory();
-	static final Set<String> CUSTOM_HEADERS;
+	static final Set<String> BINDER_INTERNAL_HEADERS;
 	static final String JAVA_SERIALIZED_OBJECT_HEADER = "isJavaSerializedObject";
 	private static final String HEADER_JAVA_SERIALIZED_OBJECT_HEADER = "_" + JAVA_SERIALIZED_OBJECT_HEADER + "-";
+	static final String BINDER_VERSION_HEADER = "solaceSpringCloudStreamBinderVersion";
+	static final String BINDER_VERSION = "0.1.0"; //TODO Determine this dynamically
 
 	static {
-		CUSTOM_HEADERS = new HashSet<>();
-		CUSTOM_HEADERS.add(JAVA_SERIALIZED_OBJECT_HEADER);
+		BINDER_INTERNAL_HEADERS = new HashSet<>();
+		BINDER_INTERNAL_HEADERS.add(JAVA_SERIALIZED_OBJECT_HEADER);
+		BINDER_INTERNAL_HEADERS.add(BINDER_VERSION_HEADER);
 	}
 
 	public XMLMessage map(Message<?> message, SolaceProducerProperties producerProperties) {
@@ -66,6 +69,7 @@ public class XMLMessageMapper {
 		XMLMessage xmlMessage;
 		Object payload = message.getPayload();
 		SDTMap metadata = map(message.getHeaders());
+		rethrowableCall(metadata::putString, BINDER_VERSION_HEADER, BINDER_VERSION);
 
 		if (payload instanceof byte[]) {
 			BytesMessage bytesMessage = JCSMPFactory.onlyInstance().createMessage(BytesMessage.class);
@@ -187,7 +191,7 @@ public class XMLMessageMapper {
 
 		Map<String,Object> headers = new HashMap<>();
 		metadata.keySet().stream()
-				.filter(h -> !CUSTOM_HEADERS.contains(h))
+				.filter(h -> !BINDER_INTERNAL_HEADERS.contains(h))
 				.filter(h -> !h.startsWith(HEADER_JAVA_SERIALIZED_OBJECT_HEADER))
 				.forEach(h -> {
 					Object value = rethrowableCall(metadata::get, h);

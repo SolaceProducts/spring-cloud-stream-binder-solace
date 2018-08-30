@@ -365,31 +365,42 @@ public class XMLMessageMapperTest {
 
 	@Test
 	public void testMapLoop() throws Exception {
-		TextMessage textMessage = JCSMPFactory.onlyInstance().createMessage(TextMessage.class);
-		textMessage.setText("testPayload");
+		Message<?> springMessage = new DefaultMessageBuilderFactory()
+				.withPayload("testPayload")
+				.setHeader("test-header-1", "test-header-val-1")
+				.setHeader("test-header-2", "test-header-val-2")
+				.build();
+		Map<String,Object> springHeaders = new HashMap<>(springMessage.getHeaders());
+
 		SDTMap metadata = JCSMPFactory.onlyInstance().createMap();
 		metadata.putString("test-header-1", "test-header-val-1");
 		metadata.putString("test-header-2", "test-header-val-2");
-		textMessage.setProperties(metadata);
-		textMessage.setDeliveryMode(DeliveryMode.PERSISTENT);
 
-		XMLMessage xmlMessage = textMessage;
-		Message<?> springMessage;
+		XMLMessage xmlMessage;
 		for (int i = 0; i < 3; i++) {
-			logger.info(String.format("Iteration %s - XMLMessage to Message<?>:\n%s", i, xmlMessage));
-			springMessage = xmlMessageMapper.map(xmlMessage);
 			logger.info(String.format("Iteration %s - Message<?> to XMLMessage:\n%s", i, springMessage));
 			xmlMessage = xmlMessageMapper.map(springMessage);
+			validateXMLMessage(xmlMessage, springHeaders);
+
+			logger.info(String.format("Iteration %s - XMLMessage to Message<?>:\n%s", i, xmlMessage));
+			springMessage = xmlMessageMapper.map(xmlMessage);
+			validateSpringMessage(springMessage, metadata);
+
+			// Update the expected default spring headers
+			springHeaders.put(MessageHeaders.ID, springMessage.getHeaders().getId());
+			springHeaders.put(MessageHeaders.TIMESTAMP, springMessage.getHeaders().getTimestamp());
 		}
 	}
 
-	private void validateXMLMessage(XMLMessage xmlMessage, MessageHeaders expectedHeaders) throws Exception {
+	private void validateXMLMessage(XMLMessage xmlMessage, Map<String, Object> expectedHeaders) throws Exception {
 		Assert.assertEquals(DeliveryMode.PERSISTENT, xmlMessage.getDeliveryMode());
 
 		SDTMap metadata = xmlMessage.getProperties();
 
+		Assert.assertEquals(XMLMessageMapper.BINDER_VERSION, metadata.getString(XMLMessageMapper.BINDER_VERSION_HEADER));
+
 		for (Map.Entry<String,Object> header : expectedHeaders.entrySet()) {
-			Assert.assertTrue(metadata.containsKey(header.getKey()));
+			Assert.assertThat(metadata.keySet(), CoreMatchers.hasItem(header.getKey()));
 
 			Object actualValue = metadata.get(header.getKey());
 			if (metadata.containsKey(xmlMessageMapper.getIsHeaderSerializedMetadataKey(header.getKey()))) {
@@ -402,12 +413,12 @@ public class XMLMessageMapperTest {
 	private void validateSpringMessage(Message<?> message, SDTMap expectedHeaders) throws SDTException {
 		MessageHeaders messageHeaders = message.getHeaders();
 
-		for (String customHeaderName : XMLMessageMapper.CUSTOM_HEADERS) {
+		for (String customHeaderName : XMLMessageMapper.BINDER_INTERNAL_HEADERS) {
 			Assert.assertThat(messageHeaders.keySet(), CoreMatchers.not(CoreMatchers.hasItem(customHeaderName)));
 		}
 
 		for (String headerName : expectedHeaders.keySet()) {
-			if (XMLMessageMapper.CUSTOM_HEADERS.contains(headerName)) continue;
+			if (XMLMessageMapper.BINDER_INTERNAL_HEADERS.contains(headerName)) continue;
 			Assert.assertEquals(expectedHeaders.get(headerName), messageHeaders.get(headerName));
 		}
 
