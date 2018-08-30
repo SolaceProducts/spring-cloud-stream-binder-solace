@@ -18,8 +18,10 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.integration.IntegrationMessageHeaderAccessor;
 import org.springframework.integration.support.DefaultMessageBuilderFactory;
 import org.springframework.integration.support.MessageBuilder;
+import org.springframework.integration.support.StaticMessageHeaderAccessor;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
+import org.springframework.util.MimeType;
 import org.springframework.util.SerializationUtils;
 
 import java.io.Serializable;
@@ -107,6 +109,11 @@ public class XMLMessageMapper {
 			throw exception;
 		}
 
+		MimeType contentType = StaticMessageHeaderAccessor.getContentType(message);
+		if (contentType != null) {
+			xmlMessage.setHTTPContentType(contentType.toString());
+		}
+
 		xmlMessage.setProperties(metadata);
 		xmlMessage.setDeliveryMode(DeliveryMode.PERSISTENT);
 		return xmlMessage;
@@ -160,6 +167,7 @@ public class XMLMessageMapper {
 				.withPayload(payload)
 				.copyHeaders(map(metadata))
 				.setHeader(IntegrationMessageHeaderAccessor.ACKNOWLEDGMENT_CALLBACK, ackCallbackFactory.createCallback(xmlMessage))
+				.setHeaderIfAbsent(MessageHeaders.CONTENT_TYPE, xmlMessage.getHTTPContentType())
 				.setHeaderIfAbsent(IntegrationMessageHeaderAccessor.DELIVERY_ATTEMPT, new AtomicInteger(0));
 
 		if (setRawMessageHeader) builder.setHeader(SolaceMessageHeaderErrorMessageStrategy.SOLACE_RAW_MESSAGE, xmlMessage);
