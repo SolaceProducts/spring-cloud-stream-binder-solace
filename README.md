@@ -73,7 +73,30 @@ compile("com.solace.spring.cloud:spring-cloud-starter-stream-solace:0.+")
 
 ### Creating a Simple Solace Binding
 
-TODO
+For a quick example of declaring a consumer binding in your application, take a look at [Spring's introductory example](https://docs.spring.io/spring-cloud-stream/docs/current/reference/htmlsingle/#spring-cloud-stream-overview-introducing).
+
+Then for this example, an applicable Solace configuration file may look like:
+
+```yml
+spring:
+  cloud:
+    stream:
+      bindings:
+        input:
+          destination: testtock
+          group: myconsumergroup
+
+solace:
+  java:
+    host: tcp://192.168.133.64
+    msgVpn: default
+    clientUsername: default
+    clientPassword: default
+    connectRetries: -1
+    reconnectRetries: -1
+```
+
+Notice that the latter half of this configuration actually originates from the [JCSMP Spring Boot Auto-Configuration project](https://github.com/SolaceProducts/solace-java-spring-boot#updating-your-application-properties).
 
 ## Configuration Options
 
