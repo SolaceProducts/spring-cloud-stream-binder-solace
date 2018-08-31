@@ -4,9 +4,9 @@ This document defines all the Solace-specific binder configuration options suppo
 
 ## Inherited Configuration Options
 
-Auto-configuration-related options required for auto-connecting to Solace message brokers, refer to the [JCSMP Spring Boot Auto-Configuration documentation](https://github.com/SolaceProducts/solace-java-spring-boot#configure-the-application-to-use-your-solace-pubsub-service-credentials).
+For auto-configuration-related options required for auto-connecting to Solace message brokers, refer to the [JCSMP Spring Boot Auto-Configuration documentation](https://github.com/SolaceProducts/solace-java-spring-boot#configure-the-application-to-use-your-solace-pubsub-service-credentials).
 
-As for for general binder configuration options and properties, refer to the [Spring Cloud Stream core documentation](https://github.com/spring-cloud/spring-cloud-stream/blob/master/spring-cloud-stream-core-docs/src/main/asciidoc/spring-cloud-stream-overview.adoc#configuration-options).
+As for for general binder configuration options and properties, refer to the [Spring Cloud Stream Reference Guide](https://docs.spring.io/spring-cloud-stream/docs/current/reference/htmlsingle/#_configuration_options).
 
 ## Solace Binder Configuration Options
 
