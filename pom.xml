@@ -7,7 +7,7 @@
   <packaging>pom</packaging>
   <name>Solace Spring Cloud Stream Starter and Binder</name>
   <description>Parent POM for the Solace Spring Cloud Stream Binder</description>
-  <url>https://github.com/SolaceDev/spring-cloud-stream-binder-solace</url>
+  <url>https://github.com/SolaceLabs/spring-cloud-stream-binder-solace</url>
 
   <licenses>
     <license>
@@ -26,9 +26,9 @@
   </developers>
 
   <scm>
-    <url>https://github.com/SolaceDev/spring-cloud-stream-binder-solace.git</url>
-    <connection>scm:git:git://github.com/SolaceDev/spring-cloud-stream-binder-solace.git</connection>
-    <developerConnection>scm:git:git@github.com:SolaceDev/spring-cloud-stream-binder-solace.git</developerConnection>
+    <url>https://github.com/SolaceLabs/spring-cloud-stream-binder-solace.git</url>
+    <connection>scm:git:git://github.com/SolaceLabs/spring-cloud-stream-binder-solace.git</connection>
+    <developerConnection>scm:git:git@github.com:SolaceLabs/spring-cloud-stream-binder-solace.git</developerConnection>
     <tag>HEAD</tag>
   </scm>
 
