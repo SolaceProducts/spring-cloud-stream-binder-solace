@@ -1,11 +1,7 @@
 package com.solace.spring.cloud.stream.binder.inbound;
 
-import com.solacesystems.jcsmp.ConsumerFlowProperties;
 import com.solacesystems.jcsmp.EndpointProperties;
 import com.solacesystems.jcsmp.FlowReceiver;
-import com.solacesystems.jcsmp.JCSMPException;
-import com.solacesystems.jcsmp.JCSMPFactory;
-import com.solacesystems.jcsmp.JCSMPProperties;
 import com.solacesystems.jcsmp.JCSMPSession;
 import com.solacesystems.jcsmp.Queue;
 import com.solacesystems.jcsmp.XMLMessageListener;
@@ -16,23 +12,22 @@ import org.springframework.core.AttributeAccessor;
 import org.springframework.integration.context.OrderlyShutdownCapable;
 import org.springframework.integration.endpoint.MessageProducerSupport;
 import org.springframework.lang.Nullable;
-import org.springframework.messaging.MessagingException;
 import org.springframework.retry.RecoveryCallback;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.util.Assert;
 
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
 public class JCSMPInboundChannelAdapter extends MessageProducerSupport implements OrderlyShutdownCapable {
 	private final String id = UUID.randomUUID().toString();
 	private final ConsumerDestination consumerDestination;
-	private final JCSMPSession jcsmpSession;
-	private final EndpointProperties endpointProperties;
-	private final Consumer<Queue> postStart;
 	private RetryTemplate retryTemplate;
 	private RecoveryCallback<?> recoveryCallback;
-	private FlowReceiver consumerFlowReceiver;
+
+	private final FlowConnectionScheduler flowConnectionScheduler;
+	private FlowReceiver flowReceiver;
 
 	private static final Log logger = LogFactory.getLog(JCSMPInboundChannelAdapter.class);
 	private static final ThreadLocal<AttributeAccessor> attributesHolder = new ThreadLocal<>();
@@ -40,9 +35,8 @@ public class JCSMPInboundChannelAdapter extends MessageProducerSupport implement
 	public JCSMPInboundChannelAdapter(ConsumerDestination consumerDestination, JCSMPSession jcsmpSession,
 							   @Nullable EndpointProperties endpointProperties, @Nullable Consumer<Queue> postStart) {
 		this.consumerDestination = consumerDestination;
-		this.jcsmpSession = jcsmpSession;
-		this.endpointProperties = endpointProperties;
-		this.postStart = postStart;
+		this.flowConnectionScheduler = new FlowConnectionScheduler(consumerDestination.getName(), jcsmpSession,
+				endpointProperties, postStart);
 	}
 
 	@Override
@@ -55,31 +49,20 @@ public class JCSMPInboundChannelAdapter extends MessageProducerSupport implement
 			return;
 		}
 
-		XMLMessageListener listener = buildListener();
-		Queue queue = JCSMPFactory.onlyInstance().createQueue(queueName);
 		try {
-			final ConsumerFlowProperties flowProperties = new ConsumerFlowProperties();
-			flowProperties.setEndpoint(queue);
-			flowProperties.setAckMode(JCSMPProperties.SUPPORTED_MESSAGE_ACK_CLIENT);
-			consumerFlowReceiver = jcsmpSession.createFlow(listener, flowProperties, endpointProperties);
-			consumerFlowReceiver.start();
-		} catch (JCSMPException e) {
-			String msg = "Failed to get message consumer from session";
-			logger.warn(msg, e);
-			throw new MessagingException(msg, e);
-		}
-
-		if (postStart != null) {
-			postStart.accept(queue);
-		}
+			flowReceiver = flowConnectionScheduler.createFutureFlow(buildListener()).get();
+		} catch (ExecutionException e) {
+			throw new RuntimeException(e.getCause());
+		} catch (InterruptedException ignored) {}
 	}
 
 	@Override
 	protected void doStop() {
 		if (!isRunning()) return;
+		flowConnectionScheduler.shutdown();
 		final String queueName = consumerDestination.getName();
 		logger.info(String.format("Stopping consumer flow from queue %s <inbound adapter ID: %s>", queueName, id));
-		consumerFlowReceiver.close();
+		flowReceiver.close();
 	}
 
 	@Override
@@ -108,6 +91,12 @@ public class JCSMPInboundChannelAdapter extends MessageProducerSupport implement
 	}
 
 	private XMLMessageListener buildListener() {
+		Consumer<FlowReceiver> reconnectHandler = (flow) -> {
+			flowReceiver.close();
+			logger.info(String.format("Re-established connection to queue %s", consumerDestination.getName()));
+			flowReceiver = flow;
+		};
+
 		XMLMessageListener listener;
 		if (retryTemplate != null) {
 			Assert.state(getErrorChannel() == null,
@@ -117,6 +106,8 @@ public class JCSMPInboundChannelAdapter extends MessageProducerSupport implement
 			RetryableInboundXMLMessageListener retryableMessageListener = new RetryableInboundXMLMessageListener(
 					consumerDestination,
 					this::sendMessage,
+					flowConnectionScheduler,
+					reconnectHandler,
 					(exception) -> sendErrorMessageIfNecessary(null, exception),
 					retryTemplate,
 					recoveryCallback,
@@ -128,6 +119,8 @@ public class JCSMPInboundChannelAdapter extends MessageProducerSupport implement
 			listener = new InboundXMLMessageListener(
 					consumerDestination,
 					this::sendMessage,
+					flowConnectionScheduler,
+					reconnectHandler,
 					(exception) -> sendErrorMessageIfNecessary(null, exception),
 					attributesHolder,
 					this.getErrorChannel() != null

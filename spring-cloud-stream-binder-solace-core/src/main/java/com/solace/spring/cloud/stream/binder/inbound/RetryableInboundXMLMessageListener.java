@@ -1,6 +1,7 @@
 package com.solace.spring.cloud.stream.binder.inbound;
 
 import com.solacesystems.jcsmp.BytesXMLMessage;
+import com.solacesystems.jcsmp.FlowReceiver;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.cloud.stream.provisioning.ConsumerDestination;
@@ -25,11 +26,13 @@ class RetryableInboundXMLMessageListener extends InboundXMLMessageListener imple
 
 	RetryableInboundXMLMessageListener(ConsumerDestination consumerDestination,
 									   Consumer<Message<?>> messageConsumer,
+									   FlowConnectionScheduler flowConnectionScheduler,
+									   Consumer<FlowReceiver> flowReconnectConsumer,
 									   Function<RuntimeException,Boolean> errorHandlerFunction,
 									   RetryTemplate retryTemplate,
 									   RecoveryCallback<?> recoveryCallback,
 									   ThreadLocal<AttributeAccessor> attributesHolder) {
-		super(consumerDestination, messageConsumer, errorHandlerFunction, attributesHolder, false, true);
+		super(consumerDestination, messageConsumer, flowConnectionScheduler, flowReconnectConsumer, errorHandlerFunction, attributesHolder, false, true);
 		this.retryTemplate = retryTemplate;
 		this.recoveryCallback = recoveryCallback;
 	}
