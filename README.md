@@ -164,6 +164,11 @@ See [SolaceConsumerProperties](spring-cloud-stream-binder-solace-core\src\main\j
         <p>The prefix property is not applied on these subscriptions.</p>
         <p>Default: String[0]</p>
     </dd>
+    <dt>queueReconnectRetryWaitInMillis</dt>
+    <dd>
+        <p>Wait time in milliseconds between reconnection attempts to the consumer group queue.</p>
+        <p>Default: 1000</p>
+    </dd>
     <dt>anonymousGroupPostfix</dt>
     <dd>
         <p>Naming postfix for the anonymous consumer group queue.</p>

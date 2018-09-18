@@ -26,15 +26,18 @@ class FlowConnectionScheduler {
 	private final JCSMPSession jcsmpSession;
 	private final EndpointProperties endpointProperties;
 	private final Consumer<Queue> onSuccess;
+	private final long retryWaitTime;
 	private final ExecutorService scheduler = Executors.newSingleThreadExecutor();
 
 	private static final Log logger = LogFactory.getLog(FlowConnectionScheduler.class);
 
-	FlowConnectionScheduler(String queueName, JCSMPSession jcsmpSession, EndpointProperties endpointProperties, Consumer<Queue> onSuccess) {
+	FlowConnectionScheduler(String queueName, JCSMPSession jcsmpSession, EndpointProperties endpointProperties,
+							Consumer<Queue> onSuccess, long retryWaitTime) {
 		this.queueName = queueName;
 		this.jcsmpSession = jcsmpSession;
 		this.endpointProperties = endpointProperties;
 		this.onSuccess = onSuccess;
+		this.retryWaitTime = retryWaitTime;
 	}
 
 	Future<FlowReceiver> createFutureFlow() {
@@ -64,13 +67,14 @@ class FlowConnectionScheduler {
 							consumerFlowReceiver.close();
 						}
 					} else {
-						String msg = String.format("Unable to get a %s for queue %s", FlowReceiver.class, queueName);
+						String msg = String.format("Unable to get a %s for queue %s",
+								FlowReceiver.class.getSimpleName(), queueName);
 						logger.warn(msg, e);
 						throw new JCSMPException(msg, e);
 					}
 				}
 
-				if (isWaiting) Thread.sleep(1000);
+				if (isWaiting) Thread.sleep(retryWaitTime);
 			}
 
 			if (onSuccess != null) {
@@ -84,10 +88,13 @@ class FlowConnectionScheduler {
 	}
 
 	boolean isShutdownException(JCSMPException e) {
-		boolean isQueueShutdown = e instanceof JCSMPErrorResponseException &&
+		boolean isShutdownJcsmpError = e instanceof JCSMPErrorResponseException &&
 				((JCSMPErrorResponseException) e).getResponseCode() == 503 &&
-				((JCSMPErrorResponseException) e).getSubcodeEx() == JCSMPErrorResponseSubcodeEx.QUEUE_SHUTDOWN;
-		return isQueueShutdown || e instanceof JCSMPFlowTransportUnsolicitedUnbindException;
+				(
+						((JCSMPErrorResponseException) e).getSubcodeEx() == JCSMPErrorResponseSubcodeEx.QUEUE_SHUTDOWN ||
+						((JCSMPErrorResponseException) e).getSubcodeEx() == JCSMPErrorResponseSubcodeEx.SERVICE_UNAVAILABLE
+				);
+		return isShutdownJcsmpError || e instanceof JCSMPFlowTransportUnsolicitedUnbindException;
 	}
 
 	void shutdown() {

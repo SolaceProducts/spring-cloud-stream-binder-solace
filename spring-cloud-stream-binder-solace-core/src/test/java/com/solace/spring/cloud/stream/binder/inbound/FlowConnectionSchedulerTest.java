@@ -34,6 +34,9 @@ public class FlowConnectionSchedulerTest {
 			new JCSMPErrorResponseException(503,
 					JCSMPErrorResponseSubcodeMapper.ESTR.ER_QUEUE_SHUTDOWN.getS(), "", "",
 					JCSMPErrorResponseSubcodeMapper.ErrorContext.DATA),
+			new JCSMPErrorResponseException(503,
+					JCSMPErrorResponseSubcodeMapper.ESTR.ER_SERVICE_UNAVAILABLE.getS(), "", "",
+					JCSMPErrorResponseSubcodeMapper.ErrorContext.CONTROL),
 			new JCSMPFlowTransportUnsolicitedUnbindException("")
 	};
 
@@ -45,12 +48,13 @@ public class FlowConnectionSchedulerTest {
 	@Mock
 	private FlowReceiver flowReceiver;
 
+	private long retryWaitTime = 500;
 	private FlowConnectionScheduler scheduler;
 
 	@Before
 	public void setupMockito() throws JCSMPException {
 		MockitoAnnotations.initMocks(this);
-		scheduler = new FlowConnectionScheduler("test-queue-0", jcsmpSession, new EndpointProperties(), null);
+		scheduler = new FlowConnectionScheduler("test-queue-0", jcsmpSession, new EndpointProperties(), null, retryWaitTime);
 		Mockito.when(
 				jcsmpSession.createFlow(
 						Mockito.any(XMLMessageListener.class),
@@ -91,7 +95,7 @@ public class FlowConnectionSchedulerTest {
 			latch.countDown();
 		};
 
-		scheduler = new FlowConnectionScheduler("test-queue-0", jcsmpSession, new EndpointProperties(), onSuccess);
+		scheduler = new FlowConnectionScheduler("test-queue-0", jcsmpSession, new EndpointProperties(), onSuccess, retryWaitTime);
 
 		Future<FlowReceiver> flowReceiverFuture = scheduler.createFutureFlow();
 
@@ -118,7 +122,9 @@ public class FlowConnectionSchedulerTest {
 
 		Future<FlowReceiver> flowReceiverFuture = scheduler.createFutureFlow();
 
-		Assert.assertEquals(flowReceiver, flowReceiverFuture.get(30, TimeUnit.SECONDS));
+		Assert.assertThat(flowReceiverFuture.isDone(), CoreMatchers.is(false));
+		long timeout = (retryWaitTime * numErrors) + 100; // +100 to prevent potential race condition
+		Assert.assertEquals(flowReceiver, flowReceiverFuture.get(timeout, TimeUnit.MILLISECONDS));
 		Assert.assertThat(flowReceiverFuture.isDone(), CoreMatchers.is(true));
 
 		Mockito.verify(jcsmpSession, Mockito.times(numErrors+1))

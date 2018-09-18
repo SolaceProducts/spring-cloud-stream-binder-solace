@@ -1,5 +1,6 @@
 package com.solace.spring.cloud.stream.binder.inbound;
 
+import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
 import com.solacesystems.jcsmp.EndpointProperties;
 import com.solacesystems.jcsmp.FlowReceiver;
 import com.solacesystems.jcsmp.JCSMPSession;
@@ -7,6 +8,7 @@ import com.solacesystems.jcsmp.Queue;
 import com.solacesystems.jcsmp.XMLMessageListener;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.cloud.stream.binder.ExtendedConsumerProperties;
 import org.springframework.cloud.stream.provisioning.ConsumerDestination;
 import org.springframework.core.AttributeAccessor;
 import org.springframework.integration.context.OrderlyShutdownCapable;
@@ -33,10 +35,11 @@ public class JCSMPInboundChannelAdapter extends MessageProducerSupport implement
 	private static final ThreadLocal<AttributeAccessor> attributesHolder = new ThreadLocal<>();
 
 	public JCSMPInboundChannelAdapter(ConsumerDestination consumerDestination, JCSMPSession jcsmpSession,
-							   @Nullable EndpointProperties endpointProperties, @Nullable Consumer<Queue> postStart) {
+									  ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties,
+									  @Nullable EndpointProperties endpointProperties, @Nullable Consumer<Queue> postStart) {
 		this.consumerDestination = consumerDestination;
 		this.flowConnectionScheduler = new FlowConnectionScheduler(consumerDestination.getName(), jcsmpSession,
-				endpointProperties, postStart);
+				endpointProperties, postStart, consumerProperties.getExtension().getQueueReconnectRetryWaitInMillis());
 	}
 
 	@Override

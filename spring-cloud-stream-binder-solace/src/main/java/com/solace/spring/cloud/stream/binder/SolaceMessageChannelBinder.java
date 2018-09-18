@@ -75,7 +75,7 @@ public class SolaceMessageChannelBinder
 	@Override
 	protected MessageProducer createConsumerEndpoint(ConsumerDestination destination, String group,
 													 ExtendedConsumerProperties<SolaceConsumerProperties> properties) {
-		JCSMPInboundChannelAdapter adapter = new JCSMPInboundChannelAdapter(destination, jcsmpSession,
+		JCSMPInboundChannelAdapter adapter = new JCSMPInboundChannelAdapter(destination, jcsmpSession, properties,
 				getConsumerEndpointProperties(properties), getConsumerPostStart());
 
 		ErrorInfrastructure errorInfra = registerErrorInfrastructure(destination, group, properties);

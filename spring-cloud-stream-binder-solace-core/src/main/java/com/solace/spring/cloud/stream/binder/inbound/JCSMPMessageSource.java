@@ -40,7 +40,7 @@ public class JCSMPMessageSource extends AbstractMessageSource<Object> implements
 		this.queueName = destination.getName();
 		this.consumerProperties = consumerProperties;
 		this.flowConnectionScheduler = new FlowConnectionScheduler(destination.getName(), jcsmpSession,
-				endpointProperties, postStart);
+				endpointProperties, postStart, consumerProperties.getExtension().getQueueReconnectRetryWaitInMillis());
 	}
 
 	@Override
