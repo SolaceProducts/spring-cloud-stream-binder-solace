@@ -99,7 +99,7 @@ public class FlowConnectionSchedulerTest {
 
 		Future<FlowReceiver> flowReceiverFuture = scheduler.createFutureFlow();
 
-		Assert.assertThat(latch.await(100, TimeUnit.MILLISECONDS), CoreMatchers.is(true));
+		Assert.assertThat(latch.await(1000, TimeUnit.MILLISECONDS), CoreMatchers.is(true));
 		Assert.assertEquals(flowReceiver, flowReceiverFuture.get(0, TimeUnit.MILLISECONDS));
 		Assert.assertThat(flowReceiverFuture.isDone(), CoreMatchers.is(true));
 
