@@ -5,7 +5,7 @@
   <parent>
     <groupId>com.solace.spring.cloud</groupId>
     <artifactId>spring-cloud-stream-binder-solace-parent</artifactId>
-	<version>01.2</version>
+	<version>01.3-SNAPSHOT</version>
 	<relativePath>../pom.xml</relativePath>
   </parent>
 
