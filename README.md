@@ -327,7 +327,7 @@ Note that DMQs are not intended to be used with anonymous consumer groups. Since
 
 This project depends on maven for building. To build the jar locally, check out the project and build from source by doing the following:
 ```
-git clone https://github.com/SolaceLabs/spring-cloud-stream-binder-solace.git
+git clone https://github.com/SolaceProducts/spring-cloud-stream-binder-solace.git
 cd spring-cloud-stream-binder-solace
 mvn package
 ```
@@ -342,7 +342,7 @@ Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduc
 
 ## Authors
 
-See the list of [contributors](https://github.com/SolaceLabs/spring-cloud-stream-binder-solace/graphs/contributors) who participated in this project.
+See the list of [contributors](https://github.com/SolaceProducts/spring-cloud-stream-binder-solace/graphs/contributors) who participated in this project.
 
 ## License
 

@@ -10,9 +10,9 @@ We'd love for you to contribute and welcome your help. Here are some guidelines 
 
 ## <a name="issue"></a> Did you find a issue?
 
-* **Ensure the bug was not already reported** by searching on GitHub under [Issues](https://github.com/SolaceLabs/spring-cloud-stream-binder-solace/issues).
+* **Ensure the bug was not already reported** by searching on GitHub under [Issues](https://github.com/SolaceProducts/spring-cloud-stream-binder-solace/issues).
 
-* If you're unable to find an open issue addressing the problem, [open a new one](https://github.com/SolaceLabs/spring-cloud-stream-binder-solace/issues/new). Be sure to include a **title and clear description**, as much relevant information as possible, and a **code sample** or an **executable test case** demonstrating the expected behavior that is not occurring.
+* If you're unable to find an open issue addressing the problem, [open a new one](https://github.com/SolaceProducts/spring-cloud-stream-binder-solace/issues/new). Be sure to include a **title and clear description**, as much relevant information as possible, and a **code sample** or an **executable test case** demonstrating the expected behavior that is not occurring.
 
 ## <a name="submitting"></a> Did you write a patch that fixes a bug?
 
@@ -20,7 +20,7 @@ Open a new GitHub pull request with the patch following the steps outlined below
 
 Before you submit your pull request consider the following guidelines:
 
-* Search [GitHub](https://github.com/SolaceLabs/spring-cloud-stream-binder-solace/pulls) for an open or closed Pull Request
+* Search [GitHub](https://github.com/SolaceProducts/spring-cloud-stream-binder-solace/pulls) for an open or closed Pull Request
   that relates to your submission. You don't want to duplicate effort.
 
 ### Submitting a Pull Request
@@ -29,7 +29,7 @@ Please follow these steps for all pull requests. These steps are derived from th
 
 #### Step 1: Fork
 
-Fork the project [on GitHub](https://github.com/SolaceLabs/spring-cloud-stream-binder-solace) and clone your fork
+Fork the project [on GitHub](https://github.com/SolaceProducts/spring-cloud-stream-binder-solace) and clone your fork
 locally.
 
 ```sh
@@ -67,7 +67,7 @@ $ git rebase upstream/master
 If you have not set the upstream, do so as follows:
 
 ```sh
-$ git remote add upstream https://github.com/SolaceLabs/spring-cloud-stream-binder-solace
+$ git remote add upstream https://github.com/SolaceProducts/spring-cloud-stream-binder-solace
 ```
 
 If you have already pushed your fork, then do not rebase. Instead merge any changes from master that are not already part of your branch.
@@ -94,7 +94,7 @@ That's it! Thank you for your contribution!
 
 ## <a name="features"></a> **Do you have an ideas for a new feature or a change to an existing one?**
 
-* Open a GitHub [enhancement request issue](https://github.com/SolaceLabs/spring-cloud-stream-binder-solace/issues/new) and describe the new functionality.
+* Open a GitHub [enhancement request issue](https://github.com/SolaceProducts/spring-cloud-stream-binder-solace/issues/new) and describe the new functionality.
 
 ## <a name="addFeature"></a> **Steps to add a new feature**
 
