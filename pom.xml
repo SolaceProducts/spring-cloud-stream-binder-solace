@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.solace.spring.cloud</groupId>
   <artifactId>spring-cloud-stream-binder-solace-parent</artifactId>
-  <version>1.0.0</version>
+  <version>1.1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Solace Spring Cloud Stream Starter and Binder</name>
   <description>Parent POM for the Solace Spring Cloud Stream Binder</description>
@@ -29,7 +29,7 @@
     <url>https://github.com/SolaceLabs/spring-cloud-stream-binder-solace.git</url>
     <connection>scm:git:git://github.com/SolaceLabs/spring-cloud-stream-binder-solace.git</connection>
     <developerConnection>scm:git:git@github.com:SolaceLabs/spring-cloud-stream-binder-solace.git</developerConnection>
-    <tag>1.0.0</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <properties>
