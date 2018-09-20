@@ -54,7 +54,7 @@ public class SolaceBinderTest
 	@Autowired
 	private SpringJCSMPFactory springJCSMPFactory;
 
-	@Value("${test.failOnConnectionException:false}")
+	@Value("${test.fail.on.connection.exception:false}")
 	private Boolean failOnConnectError;
 
 	private JCSMPSession jcsmpSession;

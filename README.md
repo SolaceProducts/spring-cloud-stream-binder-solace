@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/SolaceProducts/spring-cloud-stream-binder-solace.svg?branch=master)](https://travis-ci.org/SolaceProducts/spring-cloud-stream-binder-solace)
+
 # Spring Cloud Stream Binder for Solace PubSub+
 
 An implementation of Spring's Cloud Stream Binder for integrating with Solace PubSub+ message brokers. The Spring Cloud Stream Binder project provides a higher-level abstraction towards messaging that standardizes the development of distributed message-based systems.
@@ -57,7 +59,7 @@ Here is how to include the spring cloud stream starter in your project using Gra
 
 ```groovy
 // Solace Spring Cloud Stream Binder
-compile("com.solace.spring.cloud:spring-cloud-starter-stream-solace:0.+")
+compile("com.solace.spring.cloud:spring-cloud-starter-stream-solace:1.0.+")
 ```
 
 #### Using it with Maven
@@ -67,7 +69,7 @@ compile("com.solace.spring.cloud:spring-cloud-starter-stream-solace:0.+")
 <dependency>
   <groupId>com.solace.spring.cloud</groupId>
   <artifactId>spring-cloud-starter-stream-solace</artifactId>
-  <version>0.+</version>
+  <version>1.0.+</version>
 </dependency>
 ```
 
@@ -322,7 +324,7 @@ Note that DMQs are not intended to be used with anonymous consumer groups. Since
 
 This project depends on maven for building. To build the jar locally, check out the project and build from source by doing the following:
 ```
-git clone https://github.com/SolaceLabs/spring-cloud-stream-binder-solace.git
+git clone https://github.com/SolaceProducts/spring-cloud-stream-binder-solace.git
 cd spring-cloud-stream-binder-solace
 mvn package
 ```
@@ -337,7 +339,7 @@ Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduc
 
 ## Authors
 
-See the list of [contributors](https://github.com/SolaceLabs/spring-cloud-stream-binder-solace/graphs/contributors) who participated in this project.
+See the list of [contributors](https://github.com/SolaceProducts/spring-cloud-stream-binder-solace/graphs/contributors) who participated in this project.
 
 ## License
 
