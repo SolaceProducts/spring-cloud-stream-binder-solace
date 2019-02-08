@@ -59,7 +59,7 @@ Here is how to include the spring cloud stream starter in your project using Gra
 
 ```groovy
 // Solace Spring Cloud Stream Binder
-compile("com.solace.spring.cloud:spring-cloud-starter-stream-solace:1.0.+")
+compile("com.solace.spring.cloud:spring-cloud-starter-stream-solace:1.1.+")
 ```
 
 #### Using it with Maven
@@ -69,7 +69,7 @@ compile("com.solace.spring.cloud:spring-cloud-starter-stream-solace:1.0.+")
 <dependency>
   <groupId>com.solace.spring.cloud</groupId>
   <artifactId>spring-cloud-starter-stream-solace</artifactId>
-  <version>1.0.+</version>
+  <version>1.1.+</version>
 </dependency>
 ```
 
@@ -116,7 +116,7 @@ For general binder configuration options and properties, refer to the [Spring Cl
 
 The following properties are available for Solace consumers only and must be prefixed with `spring.cloud.stream.solace.bindings.<channelName>.consumer.`.
 
-See [SolaceConsumerProperties](spring-cloud-stream-binder-solace-core\src\main\java\com\solace\spring\cloud\stream\binder\properties\SolaceConsumerProperties.java) for the most updated list.
+See [SolaceConsumerProperties](spring-cloud-stream-binder-solace-core/src/main/java/com/solace/spring/cloud/stream/binder/properties/SolaceConsumerProperties.java) for the most updated list.
 
 <dl>
     <dt>prefix</dt>
@@ -232,7 +232,7 @@ See [SolaceConsumerProperties](spring-cloud-stream-binder-solace-core\src\main\j
 
 The following properties are available for Solace producers only and must be prefixed with `spring.cloud.stream.solace.bindings.<channelName>.producer.`.
 
-See [SolaceProducerProperties](spring-cloud-stream-binder-solace-core\src\main\java\com\solace\spring\cloud\stream\binder\properties\SolaceProducerProperties.java) for the most updated list.
+See [SolaceProducerProperties](spring-cloud-stream-binder-solace-core/src/main/java/com/solace/spring/cloud/stream/binder/properties/SolaceProducerProperties.java) for the most updated list.
 
 <dl>
     <dt>prefix</dt>
