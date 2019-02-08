@@ -9,6 +9,7 @@ import java.util.Map;
 
 @ConfigurationProperties("spring.cloud.stream.solace")
 public class SolaceExtendedBindingProperties implements ExtendedBindingProperties<SolaceConsumerProperties,SolaceProducerProperties> {
+	private static final String DEFAULTS_PREFIX = "spring.cloud.stream.solace.default";
 
 	private Map<String,SolaceBindingProperties> bindings = new HashMap<>();
 
@@ -41,8 +42,6 @@ public class SolaceExtendedBindingProperties implements ExtendedBindingPropertie
 
 		return bindings.get(channelName).getProducer();
 	}
-
-	private static final String DEFAULTS_PREFIX = "spring.cloud.stream.solace.default";
 
 	@Override
 	public String getDefaultsPrefix() {
