@@ -50,7 +50,7 @@ public class SolaceExtendedBindingProperties implements ExtendedBindingPropertie
 	}
 
 	@Override
-	public Class <? extends BinderSpecificPropertiesProvider> getExtendedPropertiesEntryClass() {
+	public Class<? extends BinderSpecificPropertiesProvider> getExtendedPropertiesEntryClass() {
 		return SolaceBindingProperties.class;
 	}
 
