@@ -7,6 +7,7 @@ public class SolaceBindingProperties implements BinderSpecificPropertiesProvider
 	private SolaceConsumerProperties consumer = new SolaceConsumerProperties();
 	private SolaceProducerProperties producer = new SolaceProducerProperties();
 
+	@Override
 	public SolaceConsumerProperties getConsumer() {
 		return consumer;
 	}
@@ -15,6 +16,7 @@ public class SolaceBindingProperties implements BinderSpecificPropertiesProvider
 		this.consumer = consumer;
 	}
 
+	@Override
 	public SolaceProducerProperties getProducer() {
 		return producer;
 	}
