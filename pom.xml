@@ -39,7 +39,7 @@
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
 
-    <spring-cloud-stream.version>2.0.0.RELEASE</spring-cloud-stream.version>
+    <spring-cloud-stream.version>2.1.0.RELEASE</spring-cloud-stream.version>
   </properties>
 
   <repositories>

@@ -1,6 +1,8 @@
 package com.solace.spring.cloud.stream.binder.properties;
 
-public class SolaceBindingProperties {
+import org.springframework.cloud.stream.binder.BinderSpecificPropertiesProvider;
+
+public class SolaceBindingProperties implements BinderSpecificPropertiesProvider {
 
 	private SolaceConsumerProperties consumer = new SolaceConsumerProperties();
 	private SolaceProducerProperties producer = new SolaceProducerProperties();
