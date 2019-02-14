@@ -22,9 +22,9 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
-import org.springframework.integration.support.AcknowledgmentCallback;
+import org.springframework.integration.StaticMessageHeaderAccessor;
+import org.springframework.integration.acks.AcknowledgmentCallback;
 import org.springframework.integration.support.DefaultMessageBuilderFactory;
-import org.springframework.integration.support.StaticMessageHeaderAccessor;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.util.MimeTypeUtils;
@@ -212,7 +212,7 @@ public class XMLMessageMapperTest {
 		Mockito.verify(xmlMessageMapper).map(xmlMessage, false);
 
 		Assert.assertThat(springMessage.getPayload(), CoreMatchers.instanceOf(byte[].class));
-		Assert.assertArrayEquals(xmlMessage.getData(), (byte[])springMessage.getPayload());
+		Assert.assertArrayEquals(xmlMessage.getData(), (byte[]) springMessage.getPayload());
 		validateSpringMessage(springMessage, xmlMessage);
 	}
 

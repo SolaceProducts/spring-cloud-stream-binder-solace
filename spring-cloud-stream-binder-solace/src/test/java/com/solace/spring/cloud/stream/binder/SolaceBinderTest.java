@@ -20,6 +20,7 @@ import org.springframework.cloud.stream.binder.Binding;
 import org.springframework.cloud.stream.binder.ExtendedConsumerProperties;
 import org.springframework.cloud.stream.binder.ExtendedProducerProperties;
 import org.springframework.cloud.stream.binder.PartitionCapableBinderTests;
+import org.springframework.cloud.stream.binder.PollableSource;
 import org.springframework.cloud.stream.binder.Spy;
 import org.springframework.cloud.stream.config.BindingProperties;
 import org.springframework.cloud.stream.provisioning.ProvisioningException;
@@ -28,6 +29,7 @@ import org.springframework.integration.context.IntegrationContextUtils;
 import org.springframework.integration.support.MessageBuilder;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.MessageHandler;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.MessagingException;
 import org.springframework.messaging.SubscribableChannel;
@@ -36,7 +38,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.util.MimeTypeUtils;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -185,6 +186,82 @@ public class SolaceBinderTest
 		assertThat(errorMessage.get().getPayload()).isInstanceOf(MessagingException.class);
 		assertThat((MessagingException) errorMessage.get().getPayload()).hasCauseInstanceOf(ClosedFacilityException.class);
 		producerBinding.unbind();
+	}
+
+	@Test
+	public void testPolledConsumer() throws Exception {
+		SolaceTestBinder binder = getBinder();
+
+		DirectChannel moduleOutputChannel = createBindableChannel("output", new BindingProperties());
+		PollableSource<MessageHandler> moduleInputChannel = createBindableMessageSource("input", new BindingProperties());
+
+		String destination0 = String.format("foo%s0", getDestinationNameDelimiter());
+
+		Binding<MessageChannel> producerBinding = binder.bindProducer(
+				destination0, moduleOutputChannel, createProducerProperties());
+		Binding<PollableSource<MessageHandler>> consumerBinding = binder.bindPollableConsumer(
+				destination0, "testPolledConsumer", moduleInputChannel, createConsumerProperties());
+
+		Message<?> message = MessageBuilder.withPayload("foo".getBytes())
+				.setHeader(MessageHeaders.CONTENT_TYPE, MimeTypeUtils.TEXT_PLAIN_VALUE)
+				.build();
+
+		binderBindUnbindLatency();
+
+		logger.info(String.format("Sending message to destination %s: %s", destination0, message));
+		moduleOutputChannel.send(message);
+
+		boolean gotMessage = false;
+		for (int i = 0; !gotMessage && i < 100; i++) {
+			gotMessage = moduleInputChannel.poll(message1 -> {
+				logger.info(String.format("Received message %s", message1));
+			});
+		}
+		assertThat(gotMessage).isTrue();
+
+		producerBinding.unbind();
+		consumerBinding.unbind();
+	}
+
+	@Test
+	public void testPolledConsumerRequeue() throws Exception {
+		SolaceTestBinder binder = getBinder();
+
+		DirectChannel moduleOutputChannel = createBindableChannel("output", new BindingProperties());
+		PollableSource<MessageHandler> moduleInputChannel = createBindableMessageSource("input", new BindingProperties());
+
+		String destination0 = String.format("foo%s0", getDestinationNameDelimiter());
+
+		Binding<MessageChannel> producerBinding = binder.bindProducer(
+				destination0, moduleOutputChannel, createProducerProperties());
+
+		ExtendedConsumerProperties<SolaceConsumerProperties> consumerProperties = createConsumerProperties();
+		consumerProperties.getExtension().setRequeueRejected(true);
+		Binding<PollableSource<MessageHandler>> consumerBinding = binder.bindPollableConsumer(
+				destination0, "testPolledConsumerRequeue", moduleInputChannel, consumerProperties);
+
+		Message<?> message = MessageBuilder.withPayload("foo".getBytes())
+				.setHeader(MessageHeaders.CONTENT_TYPE, MimeTypeUtils.TEXT_PLAIN_VALUE)
+				.build();
+
+		binderBindUnbindLatency();
+
+		logger.info(String.format("Sending message to destination %s: %s", destination0, message));
+		moduleOutputChannel.send(message);
+
+		boolean gotMessage = false;
+		for (int i = 0; !gotMessage && i < 100; i++) {
+			gotMessage = moduleInputChannel.poll(message1 -> {
+				throw new RuntimeException("Throwing expected exception!");
+			});
+		}
+		assertThat(gotMessage).isTrue();
+
+		gotMessage = moduleInputChannel.poll(message1 -> logger.info(String.format("Received message %s", message1)));
+		assertThat(gotMessage).isTrue();
+
+		producerBinding.unbind();
+		consumerBinding.unbind();
 	}
 
 	@Test

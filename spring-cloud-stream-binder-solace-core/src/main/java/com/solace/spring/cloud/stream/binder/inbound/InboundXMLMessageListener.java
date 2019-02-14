@@ -9,9 +9,9 @@ import com.solacesystems.jcsmp.XMLMessage;
 import com.solacesystems.jcsmp.XMLMessageListener;
 import org.springframework.cloud.stream.provisioning.ConsumerDestination;
 import org.springframework.core.AttributeAccessor;
-import org.springframework.integration.support.AckUtils;
+import org.springframework.integration.StaticMessageHeaderAccessor;
+import org.springframework.integration.acks.AckUtils;
 import org.springframework.integration.support.ErrorMessageUtils;
-import org.springframework.integration.support.StaticMessageHeaderAccessor;
 import org.springframework.messaging.Message;
 
 import java.util.concurrent.atomic.AtomicInteger;

@@ -1,8 +1,8 @@
 package com.solace.spring.cloud.stream.binder.util;
 
 import com.solacesystems.jcsmp.XMLMessage;
-import org.springframework.integration.support.AcknowledgmentCallback;
-import org.springframework.integration.support.AcknowledgmentCallbackFactory;
+import org.springframework.integration.acks.AcknowledgmentCallback;
+import org.springframework.integration.acks.AcknowledgmentCallbackFactory;
 
 class JCSMPAcknowledgementCallbackFactory implements AcknowledgmentCallbackFactory<XMLMessage> {
 

@@ -12,6 +12,7 @@ import com.solacesystems.jcsmp.JCSMPSession;
 import com.solacesystems.jcsmp.Queue;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.cloud.stream.binder.AbstractMessageChannelBinder;
+import org.springframework.cloud.stream.binder.BinderSpecificPropertiesProvider;
 import org.springframework.cloud.stream.binder.DefaultPollableMessageSource;
 import org.springframework.cloud.stream.binder.ExtendedConsumerProperties;
 import org.springframework.cloud.stream.binder.ExtendedProducerProperties;
@@ -79,7 +80,7 @@ public class SolaceMessageChannelBinder
 				getConsumerEndpointProperties(properties), getConsumerPostStart());
 
 		ErrorInfrastructure errorInfra = registerErrorInfrastructure(destination, group, properties);
-		if(properties.getMaxAttempts() > 1) {
+		if (properties.getMaxAttempts() > 1) {
 			adapter.setRetryTemplate(buildRetryTemplate(properties));
 			adapter.setRecoveryCallback(errorInfra.getRecoverer());
 		} else {
@@ -147,6 +148,16 @@ public class SolaceMessageChannelBinder
 	@Override
 	public SolaceProducerProperties getExtendedProducerProperties(String channelName) {
 		return extendedBindingProperties.getExtendedProducerProperties(channelName);
+	}
+
+	@Override
+	public String getDefaultsPrefix() {
+		return this.extendedBindingProperties.getDefaultsPrefix();
+	}
+
+	@Override
+	public Class<? extends BinderSpecificPropertiesProvider> getExtendedPropertiesEntryClass() {
+		return this.extendedBindingProperties.getExtendedPropertiesEntryClass();
 	}
 
 	public void setExtendedBindingProperties(SolaceExtendedBindingProperties extendedBindingProperties) {

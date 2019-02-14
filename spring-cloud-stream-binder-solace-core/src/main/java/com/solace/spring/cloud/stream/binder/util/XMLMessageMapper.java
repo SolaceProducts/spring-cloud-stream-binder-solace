@@ -16,9 +16,9 @@ import com.solacesystems.jcsmp.XMLMessage;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.integration.IntegrationMessageHeaderAccessor;
+import org.springframework.integration.StaticMessageHeaderAccessor;
 import org.springframework.integration.support.DefaultMessageBuilderFactory;
 import org.springframework.integration.support.MessageBuilder;
-import org.springframework.integration.support.StaticMessageHeaderAccessor;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.util.MimeType;
@@ -163,7 +163,7 @@ public class XMLMessageMapper {
 			throw exception;
 		}
 
-		MessageBuilder<?> builder =  new DefaultMessageBuilderFactory()
+		MessageBuilder<?> builder = new DefaultMessageBuilderFactory()
 				.withPayload(payload)
 				.copyHeaders(map(metadata))
 				.setHeader(IntegrationMessageHeaderAccessor.ACKNOWLEDGMENT_CALLBACK, ackCallbackFactory.createCallback(xmlMessage))
