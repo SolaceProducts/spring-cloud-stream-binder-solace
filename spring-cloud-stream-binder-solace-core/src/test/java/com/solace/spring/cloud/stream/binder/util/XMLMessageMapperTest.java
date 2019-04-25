@@ -2,6 +2,7 @@ package com.solace.spring.cloud.stream.binder.util;
 
 import com.solace.spring.cloud.stream.binder.properties.SolaceConsumerProperties;
 import com.solace.spring.cloud.stream.binder.properties.SolaceProducerProperties;
+import com.solacesystems.common.util.ByteArray;
 import com.solacesystems.jcsmp.BytesMessage;
 import com.solacesystems.jcsmp.DeliveryMode;
 import com.solacesystems.jcsmp.JCSMPFactory;
@@ -30,7 +31,9 @@ import org.springframework.messaging.MessageHeaders;
 import org.springframework.util.MimeTypeUtils;
 import org.springframework.util.SerializationUtils;
 
+import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -374,7 +377,8 @@ public class XMLMessageMapperTest {
 
 		Assert.assertThat(sdtMap.keySet(), CoreMatchers.hasItem(key));
 		Assert.assertThat(sdtMap.keySet(), CoreMatchers.hasItem(xmlMessageMapper.getIsHeaderSerializedMetadataKey(key)));
-		Assert.assertEquals(value, SerializationUtils.deserialize(sdtMap.getBytes(key)));
+		Assert.assertThat(sdtMap.values(), CoreMatchers.everyItem(CoreMatchers.not(CoreMatchers.instanceOf(ByteArray.class))));
+		Assert.assertEquals(value, deserializeHeader(sdtMap, key));
 		Assert.assertEquals(true, sdtMap.getBoolean(xmlMessageMapper.getIsHeaderSerializedMetadataKey(key)));
 	}
 
@@ -383,7 +387,7 @@ public class XMLMessageMapperTest {
 		String key = "a";
 		SerializableFoo value = new SerializableFoo("abc123", "HOOPLA!");
 		SDTMap sdtMap = JCSMPFactory.onlyInstance().createMap();
-		sdtMap.putObject(key, SerializationUtils.serialize(value));
+		sdtMap.putObject(key, serializeHeader(value));
 		sdtMap.putBoolean(xmlMessageMapper.getIsHeaderSerializedMetadataKey(key), true);
 
 		MessageHeaders messageHeaders = xmlMessageMapper.map(sdtMap);
@@ -454,7 +458,7 @@ public class XMLMessageMapperTest {
 
 			Object actualValue = metadata.get(header.getKey());
 			if (metadata.containsKey(xmlMessageMapper.getIsHeaderSerializedMetadataKey(header.getKey()))) {
-				actualValue = SerializationUtils.deserialize(metadata.getBytes(header.getKey()));
+				actualValue = deserializeHeader(metadata, header.getKey());
 			}
 			Assert.assertEquals(header.getValue(), actualValue);
 		}
@@ -491,5 +495,13 @@ public class XMLMessageMapperTest {
 		if (!expectedHeaders.containsKey(MessageHeaders.CONTENT_TYPE)) {
 			Assert.assertEquals(xmlMessage.getHTTPContentType(), contentType);
 		}
+	}
+
+	private String serializeHeader(Serializable header) {
+		return Base64.getEncoder().encodeToString(SerializationUtils.serialize(header));
+	}
+
+	private Object deserializeHeader(SDTMap headers, String key) throws SDTException {
+		return SerializationUtils.deserialize(Base64.getDecoder().decode(headers.getString(key)));
 	}
 }

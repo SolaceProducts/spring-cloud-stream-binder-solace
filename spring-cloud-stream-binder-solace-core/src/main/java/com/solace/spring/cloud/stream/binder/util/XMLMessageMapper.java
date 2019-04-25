@@ -25,6 +25,7 @@ import org.springframework.util.MimeType;
 import org.springframework.util.SerializationUtils;
 
 import java.io.Serializable;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -183,7 +184,7 @@ public class XMLMessageMapper {
 			Object value = header.getValue();
 
 			if (value instanceof UUID) {
-				value = SerializationUtils.serialize(value);
+				value = serializeHeader((UUID) value);
 				rethrowableCall(metadata::putBoolean, getIsHeaderSerializedMetadataKey(header.getKey()), true);
 			}
 
@@ -207,7 +208,7 @@ public class XMLMessageMapper {
 					String isSerializedMetadataKey = getIsHeaderSerializedMetadataKey(h);
 					if (metadata.containsKey(isSerializedMetadataKey) &&
 							rethrowableCall(metadata::getBoolean, isSerializedMetadataKey)) {
-						value = SerializationUtils.deserialize(rethrowableCall(metadata::getBytes, h));
+						value = deserializeHeader(rethrowableCall(metadata::getString, h));
 					}
 
 					if (value instanceof ByteArray) {
@@ -224,6 +225,13 @@ public class XMLMessageMapper {
 		return String.format("%s%s", HEADER_JAVA_SERIALIZED_OBJECT_HEADER, headerName);
 	}
 
+	private String serializeHeader(Serializable serializable) {
+		return Base64.getEncoder().encodeToString(SerializationUtils.serialize(serializable));
+	}
+
+	private Object deserializeHeader(String serialized) {
+		return SerializationUtils.deserialize(Base64.getDecoder().decode(serialized));
+	}
 
 	/**
 	 * Wrapper function which converts Serializable objects to byte[] if they aren't naturally supported by the SDTMap
@@ -235,7 +243,7 @@ public class XMLMessageMapper {
 			} catch (IllegalArgumentException e) {
 				if (o instanceof Serializable) {
 					rethrowableCall(sdtMap::putBoolean, getIsHeaderSerializedMetadataKey(k), true);
-					rethrowableCall(sdtMap::putBytes, k, rethrowableCall(SerializationUtils::serialize, o));
+					rethrowableCall(sdtMap::putString, k, rethrowableCall(this::serializeHeader, (Serializable) o));
 				} else {
 					throw e;
 				}
