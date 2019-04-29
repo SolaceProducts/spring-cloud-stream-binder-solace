@@ -41,7 +41,7 @@ public class XMLMessageMapper {
 	private static final JCSMPAcknowledgementCallbackFactory ackCallbackFactory = new JCSMPAcknowledgementCallbackFactory();
 	static final Set<String> BINDER_INTERNAL_HEADERS;
 	static final String JAVA_SERIALIZED_OBJECT_HEADER = "isJavaSerializedObject";
-	private static final String HEADER_JAVA_SERIALIZED_OBJECT_HEADER = "_" + JAVA_SERIALIZED_OBJECT_HEADER + "-";
+	private static final String HEADER_JAVA_SERIALIZED_OBJECT_HEADER = "_" + JAVA_SERIALIZED_OBJECT_HEADER + "_";
 	static final String BINDER_VERSION_HEADER = "solaceSpringCloudStreamBinderVersion";
 	static final String BINDER_VERSION = "0.1.0"; //TODO Determine this dynamically
 

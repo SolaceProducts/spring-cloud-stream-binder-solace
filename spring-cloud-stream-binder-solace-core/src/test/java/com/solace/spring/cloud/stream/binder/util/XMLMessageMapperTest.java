@@ -38,6 +38,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 public class XMLMessageMapperTest {
 	@Spy
@@ -377,6 +378,13 @@ public class XMLMessageMapperTest {
 
 		Assert.assertThat(sdtMap.keySet(), CoreMatchers.hasItem(key));
 		Assert.assertThat(sdtMap.keySet(), CoreMatchers.hasItem(xmlMessageMapper.getIsHeaderSerializedMetadataKey(key)));
+		Assert.assertThat(String.format("A header key is an invalid Java identifier: %s", sdtMap.keySet()),
+				sdtMap.keySet()
+						.stream()
+						.map(h -> Character.isJavaIdentifierStart(h.charAt(0)) &&
+								h.chars().skip(1).allMatch(Character::isJavaIdentifierPart))
+						.collect(Collectors.toSet()),
+				CoreMatchers.everyItem(CoreMatchers.is(true)));
 		Assert.assertThat(sdtMap.values(), CoreMatchers.everyItem(CoreMatchers.not(CoreMatchers.instanceOf(ByteArray.class))));
 		Assert.assertEquals(value, deserializeHeader(sdtMap, key));
 		Assert.assertEquals(true, sdtMap.getBoolean(xmlMessageMapper.getIsHeaderSerializedMetadataKey(key)));
