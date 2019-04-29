@@ -43,7 +43,7 @@ public class XMLMessageMapper {
 	static final String JAVA_SERIALIZED_OBJECT_HEADER = "isJavaSerializedObject";
 	private static final String HEADER_JAVA_SERIALIZED_OBJECT_HEADER = "_" + JAVA_SERIALIZED_OBJECT_HEADER + "_";
 	static final String BINDER_VERSION_HEADER = "solaceSpringCloudStreamBinderVersion";
-	static final String BINDER_VERSION = "0.1.0"; //TODO Determine this dynamically
+	static final String BINDER_VERSION = "2.0.0"; //TODO Determine this dynamically
 
 	static {
 		BINDER_INTERNAL_HEADERS = new HashSet<>();
