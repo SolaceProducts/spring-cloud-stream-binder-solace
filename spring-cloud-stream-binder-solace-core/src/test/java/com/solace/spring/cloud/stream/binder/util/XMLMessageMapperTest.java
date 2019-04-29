@@ -145,6 +145,21 @@ public class XMLMessageMapperTest {
 		validateXMLMessage(xmlMessage, testSpringMessage);
 	}
 
+	@Test
+	public void testMapSpringMessageToXMLMessage_JCSMPPropertyForwarding() {
+		String applicationMessageId = "some-generated-application-msg-id";
+
+		Message<?> testSpringMessage = new DefaultMessageBuilderFactory()
+				.withPayload(new byte[0])
+				.setHeader(XMLMessageMapper.HEADER_APPLICATION_MESSAGE_ID, applicationMessageId)
+				.build();
+
+		XMLMessage xmlMessage = xmlMessageMapper.map(testSpringMessage);
+
+		// Doesn't include content-type testing since that's already tested everywhere else
+		Assert.assertEquals(applicationMessageId, xmlMessage.getApplicationMessageId());
+	}
+
 	@Test(expected = SolaceMessageConversionException.class)
 	public void testFailMapSpringMessageToXMLMessage_InvalidPayload() {
 		Message<?> testSpringMessage = new DefaultMessageBuilderFactory().withPayload(new Object()).build();
