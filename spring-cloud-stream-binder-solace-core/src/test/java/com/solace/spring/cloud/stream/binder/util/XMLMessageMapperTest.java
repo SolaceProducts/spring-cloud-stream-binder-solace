@@ -38,6 +38,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 public class XMLMessageMapperTest {
 	@Spy
@@ -142,6 +143,21 @@ public class XMLMessageMapperTest {
 		Assert.assertThat(xmlMessage, CoreMatchers.instanceOf(MapMessage.class));
 		Assert.assertEquals(testSpringMessage.getPayload(), ((MapMessage) xmlMessage).getMap());
 		validateXMLMessage(xmlMessage, testSpringMessage);
+	}
+
+	@Test
+	public void testMapSpringMessageToXMLMessage_JCSMPPropertyForwarding() {
+		String applicationMessageId = "some-generated-application-msg-id";
+
+		Message<?> testSpringMessage = new DefaultMessageBuilderFactory()
+				.withPayload(new byte[0])
+				.setHeader(XMLMessageMapper.HEADER_APPLICATION_MESSAGE_ID, applicationMessageId)
+				.build();
+
+		XMLMessage xmlMessage = xmlMessageMapper.map(testSpringMessage);
+
+		// Doesn't include content-type testing since that's already tested everywhere else
+		Assert.assertEquals(applicationMessageId, xmlMessage.getApplicationMessageId());
 	}
 
 	@Test(expected = SolaceMessageConversionException.class)
@@ -377,6 +393,13 @@ public class XMLMessageMapperTest {
 
 		Assert.assertThat(sdtMap.keySet(), CoreMatchers.hasItem(key));
 		Assert.assertThat(sdtMap.keySet(), CoreMatchers.hasItem(xmlMessageMapper.getIsHeaderSerializedMetadataKey(key)));
+		Assert.assertThat(String.format("A header key is an invalid Java identifier: %s", sdtMap.keySet()),
+				sdtMap.keySet()
+						.stream()
+						.map(h -> Character.isJavaIdentifierStart(h.charAt(0)) &&
+								h.chars().skip(1).allMatch(Character::isJavaIdentifierPart))
+						.collect(Collectors.toSet()),
+				CoreMatchers.everyItem(CoreMatchers.is(true)));
 		Assert.assertThat(sdtMap.values(), CoreMatchers.everyItem(CoreMatchers.not(CoreMatchers.instanceOf(ByteArray.class))));
 		Assert.assertEquals(value, deserializeHeader(sdtMap, key));
 		Assert.assertEquals(true, sdtMap.getBoolean(xmlMessageMapper.getIsHeaderSerializedMetadataKey(key)));
