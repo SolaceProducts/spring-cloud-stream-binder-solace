@@ -23,9 +23,9 @@ An implementation of Spring's Cloud Stream Binder for integrating with Solace Pu
 
 The Solace implementation of the Spring Cloud Stream Binder maps the following concepts from Spring to Solace:
 
-* Destinations to topic subscriptions
-* Consumer groups to durable queues
-* Anonymous consumer groups to temporary queues
+* Destinations to topic subscriptions (Source apps always send messages to a topic)
+* Consumer groups to durable queues 
+* Anonymous consumer groups to temporary queues (When no group is specified; used for SCS Publish-Subscribe Model) 
 
 And internally, each consumer group queue is subscribed to at least their destination topic. So a typical message flow would then appear as follows:
 
@@ -34,6 +34,8 @@ And internally, each consumer group queue is subscribed to at least their destin
 3. Consumers of a particular consumer group consume messages from their group in a round-robin fashion (by default)
 
 Note that partitioning is not yet supported by this version of the binder.
+
+Note that since the Binder always consumes from queues it is currently required that Assured Delivery be enabled on the Solace PubSub+ Message VPN being used (Assured Delivery is automatically enabled if using Solace Cloud.) 
 
 Also, it will be assumed that you have a basic understanding of the Spring Cloud Stream project. If not, then please refer to [Spring's documentation](https://docs.spring.io/spring-cloud-stream/docs/current/reference/htmlsingle/). For the sake of brevity, this document will solely focus on discussing components unique to Solace.
 
@@ -85,7 +87,7 @@ spring:
     stream:
       bindings:
         input:
-          destination: testtock
+          destination: queuename
           group: myconsumergroup
 
 solace:
