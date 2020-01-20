@@ -1,5 +1,8 @@
 [![Build Status](https://travis-ci.org/SolaceProducts/spring-cloud-stream-binder-solace.svg?branch=master)](https://travis-ci.org/SolaceProducts/spring-cloud-stream-binder-solace)
 
+| NOTICE | This repository is no longer maintained. The project had been moved into [solace-spring-cloud](https://github.com/SolaceProducts/solace-spring-cloud). Please go there for the latest updates on this project. |
+| --- | --- |
+
 # Spring Cloud Stream Binder for Solace PubSub+
 
 An implementation of Spring's Cloud Stream Binder for integrating with Solace PubSub+ message brokers. The Spring Cloud Stream Binder project provides a higher-level abstraction towards messaging that standardizes the development of distributed message-based systems.
