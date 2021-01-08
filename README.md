@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/SolaceProducts/spring-cloud-stream-binder-solace.svg?branch=master)](https://travis-ci.org/SolaceProducts/spring-cloud-stream-binder-solace)
 
-| NOTICE | This repository is no longer maintained. The project had been moved into [solace-spring-cloud](https://github.com/SolaceProducts/solace-spring-cloud). Please go there for the latest updates on this project. |
+| NOTICE | This repository is no longer maintained. The Cloud Stream Binder has been moved into [solace-spring-cloud](https://github.com/SolaceProducts/solace-spring-cloud). Please see the [solace-spring-cloud-stream-starter](https://github.com/SolaceProducts/solace-spring-cloud/tree/master/solace-spring-cloud-starters/solace-spring-cloud-stream-starter#spring-cloud-stream-binder-for-solace-pubsub) for the latest docs on how to use the binder. 
 | --- | --- |
 
 # Spring Cloud Stream Binder for Solace PubSub+
