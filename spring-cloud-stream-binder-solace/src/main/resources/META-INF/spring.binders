@@ -1,2 +1,0 @@
-solace:\
-com.solace.spring.cloud.stream.binder.config.SolaceServiceAutoConfiguration

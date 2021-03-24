@@ -1,1 +1,0 @@
-org.springframework.boot.autoconfigure.EnableAutoConfiguration=com.solace.spring.cloud.stream.binder.config.ExtendedBindingHandlerMappingsProviderConfiguration
