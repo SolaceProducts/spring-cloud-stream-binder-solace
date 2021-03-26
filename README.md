@@ -1,3 +1,2 @@
-| NOTICE | This repository is no longer maintained. The project had been moved into [solace-spring-cloud](https://github.com/SolaceProducts/solace-spring-cloud). Please go there for the latest updates on this project. |
+| NOTICE | This repository is no longer maintained. The project has been moved into [solace-spring-cloud](https://github.com/SolaceProducts/solace-spring-cloud). Please go to the [Solace Spring Cloud Stream Starter](https://github.com/SolaceProducts/solace-spring-cloud/tree/master/solace-spring-cloud-starters/solace-spring-cloud-stream-starter) in that repo for the latest updates on this project. |
 | --- | --- |
-
